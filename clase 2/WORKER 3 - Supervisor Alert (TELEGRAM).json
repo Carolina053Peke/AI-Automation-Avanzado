@@ -1,0 +1,116 @@
+{
+  "name": "WORKER 3 - Supervisor Alert (TELEGRAM)",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Trigger - Ejecutado por Manager",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "333284bf-aafb-47b3-88b0-d0c86bcbbe3c"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Set - Preparar Alert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        256,
+        0
+      ],
+      "description": "Prepara alert para supervisor",
+      "id": "6b0178e9-4dac-4c3a-b8cb-46f66f0f8465"
+    },
+    {
+      "parameters": {
+        "chatId": "8899335635:AAE5suQkk0-A2yDY1oiWx6FAvDB-r7r65eI",
+        "text": "🚨 ESCALAMIENTO AUTOMÁTICO\n\n👤 Cliente: {{ $json.cliente_nombre }}\n🎫 Ticket: {{ $json.ticket_id }}\n⚠️ Motivo: {{ $json.motivo }}\n🕐 Hora: {{ $json.timestamp }}\n\n⚡ ACCIÓN REQUERIDA: Contacto manual supervisor",
+        "additionalFields": {}
+      },
+      "name": "Telegram - Notificar Supervisor",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        512,
+        0
+      ],
+      "description": "Notifica al supervisor en Telegram",
+      "id": "142f57aa-0ae9-452f-a616-1d55f776591e",
+      "webhookId": "ea300a02-6663-46f8-b54b-bde417fc7b6a",
+      "credentials": {
+        "telegramApi": {
+          "id": "UVAezVJxUJq8QiFz",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Return Confirmación",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        752,
+        0
+      ],
+      "description": "Retorna confirmación",
+      "id": "0faf403d-a74e-4f30-9012-9048e2aeeda8"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger - Ejecutado por Manager": {
+      "main": [
+        [
+          {
+            "node": "Set - Preparar Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Preparar Alert": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Notificar Supervisor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram - Notificar Supervisor": {
+      "main": [
+        [
+          {
+            "node": "Return Confirmación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "70c773be-0edf-45b4-9583-29df86a4a34a",
+  "meta": {
+    "instanceId": "a8424d678d0a353446eec61b677732c76989ea1943a00cd3a5c639891451c875"
+  },
+  "nodeGroups": [],
+  "id": "5YUJNAl75tBhTP1H",
+  "tags": []
+}

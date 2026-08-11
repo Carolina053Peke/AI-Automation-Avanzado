@@ -1,0 +1,217 @@
+{
+  "name": "WORKER 1 - Data Retriever (REAL)",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Trigger - Ejecutado por Manager",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1008,
+        160
+      ],
+      "id": "e05a07c0-6678-4430-9e23-32000c6e29ef"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "nombre",
+              "value": "=juan"
+            },
+            {
+              "name": "intent",
+              "value": "={{ $input.first().json.intent || \"CONSULTA_DATO\" }}"
+            },
+            {
+              "name": "confidence",
+              "value": "={{ $input.first().json.confidence || 0.8 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set - Preparar Query",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        160
+      ],
+      "description": "Extrae nombre y apellido para búsqueda",
+      "id": "8a392cce-5bb7-462b-99d0-d348e7ac8d79"
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appMDkD6hqF1CCobd",
+          "mode": "list",
+          "cachedResultName": "Deudores",
+          "cachedResultUrl": "https://airtable.com/appMDkD6hqF1CCobd"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblDpZbqDsPGlhgYt",
+          "mode": "list",
+          "cachedResultName": "personas",
+          "cachedResultUrl": "https://airtable.com/appMDkD6hqF1CCobd/tblDpZbqDsPGlhgYt"
+        },
+        "filterByFormula": "=SEARCH(LOWER(\"{{ $json.nombre }}\"), LOWER({nombre_completo})) > 0",
+        "options": {}
+      },
+      "name": "Airtable - Buscar en Deudores",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        160
+      ],
+      "description": "Busca en tabla Deudores por nombre o apellido",
+      "id": "44fb9dff-3fee-45e4-8e73-a908d75c6dc5",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "iNRp1UqmMLnxgUt2",
+          "name": "Airtable account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.nombre_completo }}",
+              "operation": "larger"
+            }
+          ]
+        }
+      },
+      "name": "If - Validar Resultado",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        160
+      ],
+      "description": "¿Se encontró el cliente?",
+      "id": "76a9b905-01b3-4ba2-9fbb-ea4de8a10a8d"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "cliente",
+              "value": "={{ $json }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Return SUCCESS",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "description": "Retorna datos completos del cliente",
+      "id": "4ef26efb-1997-4262-96a1-54225dc0e624"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "error",
+              "value": "El cliente no fue encontrado"
+            }
+          ],
+          "boolean": []
+        },
+        "options": {}
+      },
+      "name": "Return ERROR",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        0,
+        304
+      ],
+      "description": "Retorna error si no existe el cliente",
+      "id": "f4a352d6-eef9-454d-b0fe-aa8aee47f5f4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger - Ejecutado por Manager": {
+      "main": [
+        [
+          {
+            "node": "Set - Preparar Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Preparar Query": {
+      "main": [
+        [
+          {
+            "node": "Airtable - Buscar en Deudores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable - Buscar en Deudores": {
+      "main": [
+        [
+          {
+            "node": "If - Validar Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Validar Resultado": {
+      "main": [
+        [
+          {
+            "node": "Return SUCCESS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return ERROR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "7e916998-7371-4549-9fd6-9255dcfd192e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a8424d678d0a353446eec61b677732c76989ea1943a00cd3a5c639891451c875"
+  },
+  "nodeGroups": [],
+  "id": "nnmF3LjW34IQyReV",
+  "tags": []
+}

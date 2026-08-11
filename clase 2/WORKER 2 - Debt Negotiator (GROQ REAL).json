@@ -1,0 +1,170 @@
+{
+  "name": "WORKER 2 - Debt Negotiator (GROQ REAL)",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Trigger - Ejecutado por Manager",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "62b90f19-8f43-45c7-868d-2dd309683d6f"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Set - Preparar Contexto",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        256,
+        0
+      ],
+      "description": "Prepara datos del cliente para IA",
+      "id": "f4c934aa-1714-4d75-a76b-c11abb0f042a"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"temperature\": 0.5,\n  \"max_tokens\": 500,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Rol: Especialista en negociación de cobranzas.\\nObjetivo: Determinar cierre operativo basado en perfil del cliente.\\n\\nOpciones de cierre (elige UNA):\\n1. plan → Propuesta de cuotas mensuales\\n2. pago → Convencer de pago completo hoy\\n3. prorroga → Postergar 30 días\\n4. baja → Cliente rechaza completamente\\n5. escalamiento → Riesgo/fraude detectado\\n\\nInstrucciones ESTRICTAS:\\n- Analiza: monto, días de atraso, capacidad de pago\\n- Elige la opción más probable\\n- Responde SOLO en JSON válido (sin markdown, sin explicación)\\n- Formato exacto:\\n{\\\"cierre\\\": \\\"plan|pago|prorroga|baja|escalamiento\\\", \\\"argumento\\\": \\\"motivo breve\\\", \\\"siguiente_paso\\\": \\\"acción\\\"}\\n\\nSi no puedes clasificar, retorna: {\\\"cierre\\\": \\\"escalamiento\\\", \\\"argumento\\\": \\\"Ambigüedad\\\", \\\"siguiente_paso\\\": \\\"Revisar manualmente\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Cliente: {{ $json.cliente_nombre }} {{ $json.apellido }}\\nDeuda: ${{ $json.monto_deuda }} ARS\\nDías de atraso: {{ $json.dias_mora }}\\nPropuesta: ${{ $json.propuesta_mensual }} ARS × {{ $json.propuesta_plazo }} meses\\n\\nDetermina el cierre operativo más probable.\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "name": "Groq API - Negotiator (llama-3.3-70b)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        512,
+        0
+      ],
+      "description": "Groq llama-3.3-70b para negociación profunda",
+      "id": "7a0d0ecd-44e6-4fc5-8092-3cb062d8ecd0",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "lWcnSfF5M6ydhwfv",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Set - Extraer Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        752,
+        0
+      ],
+      "description": "Extrae contenido de Groq",
+      "id": "d2beea61-8935-4b49-9021-1a18bd910c0d"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Set - Parsear JSON",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        0
+      ],
+      "description": "Parsea JSON de Groq",
+      "id": "c4a5817f-3949-49d3-9164-2463ca63a004"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Return Resultado",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        0
+      ],
+      "description": "Retorna decisión de negociación al Manager",
+      "id": "decbd51d-3301-41eb-a854-280ac6af503b"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger - Ejecutado por Manager": {
+      "main": [
+        [
+          {
+            "node": "Set - Preparar Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Preparar Contexto": {
+      "main": [
+        [
+          {
+            "node": "Groq API - Negotiator (llama-3.3-70b)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq API - Negotiator (llama-3.3-70b)": {
+      "main": [
+        [
+          {
+            "node": "Set - Extraer Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Extraer Response": {
+      "main": [
+        [
+          {
+            "node": "Set - Parsear JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Parsear JSON": {
+      "main": [
+        [
+          {
+            "node": "Return Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c6224b3f-235e-497e-8e2c-a80c76c5725e",
+  "meta": {
+    "instanceId": "a8424d678d0a353446eec61b677732c76989ea1943a00cd3a5c639891451c875"
+  },
+  "nodeGroups": [],
+  "id": "86i2SSI8W5uMJ8BJ",
+  "tags": []
+}

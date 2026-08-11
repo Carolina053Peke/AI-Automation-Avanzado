@@ -1,0 +1,425 @@
+{
+  "name": "MANAGER M2 - Telegram Router (REAL COMPLETO)",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Set - Extraer Mensaje",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        -1024,
+        160
+      ],
+      "description": "Extrae datos del mensaje Telegram",
+      "id": "5a39b1d3-6249-4ca1-a795-5a81b5f089f0"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"temperature\": 0.3,\n  \"max_tokens\": 200,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Retorna solo JSON. Formato: {\\\"intent\\\":\\\"CONSULTA_DATO\\\",\\\"confidence\\\":0.95,\\\"nombre\\\":\\\"juan\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $json.message.text }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "name": "Groq API - ROUTER (llama3-8b)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -832,
+        160
+      ],
+      "description": "Groq llama3-8b - Triaje ultra-rápido",
+      "id": "b8b89cb8-6841-4c8e-8725-932e8437dff0",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "iNRp1UqmMLnxgUt2",
+          "name": "Airtable account 2"
+        },
+        "httpBearerAuth": {
+          "id": "lWcnSfF5M6ydhwfv",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "intent",
+              "value": "={{ JSON.parse($json.choices[0].message.content).intent }}"
+            },
+            {
+              "name": "confidence",
+              "value": "={{ JSON.parse($json.choices[0].message.content).confidence }}"
+            },
+            {
+              "name": "nombre",
+              "value": "={{ JSON.parse($json.choices[0].message.content).nombre }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set - Parsear Router",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        160
+      ],
+      "description": "Parsea JSON del Router",
+      "id": "a81593e0-52c8-4a86-91ab-e6078e74608b"
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.intent }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "CONSULTA_DATO"
+            },
+            {
+              "value2": "NEGOCIACION",
+              "output": 1
+            },
+            {
+              "value2": "ESCALAMIENTO",
+              "output": 2
+            }
+          ]
+        }
+      },
+      "name": "Switch - Routing",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        128
+      ],
+      "description": "Enruta según intent",
+      "id": "bcdacb17-3756-4ae0-a768-49fb1d4a275e"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "response_message",
+              "value": "={{ $json[2]?.message || $json[3]?.decision || $json[4]?.status || \"Sin respuesta\" }}"
+            },
+            {
+              "name": "chat_id",
+              "value": "={{ $('Telegram Trigger1').first().json.chat.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set - Consolidar",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        464,
+        160
+      ],
+      "description": "Prepara mensaje para Telegram",
+      "id": "b37c72bf-7aee-4fa8-b0a6-cea2d51fe8c4"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger1').first().json.message.chat.id }}",
+        "text": "={{ $json.response_message }}",
+        "additionalFields": {}
+      },
+      "name": "Telegram - Send Response",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        640,
+        160
+      ],
+      "description": "Envía respuesta al cliente en Telegram",
+      "id": "0d73f324-8592-4d40-b5cb-94fc15939536",
+      "webhookId": "9ae80c9e-1992-4240-9342-e28cdfe94a96",
+      "credentials": {
+        "telegramApi": {
+          "id": "UVAezVJxUJq8QiFz",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -1232,
+        160
+      ],
+      "id": "e90f0830-f68d-4e8a-8c53-fe25b81fdad5",
+      "name": "Telegram Trigger1",
+      "webhookId": "a95288d5-30bb-40d2-88ab-081f246412d4",
+      "credentials": {
+        "telegramApi": {
+          "id": "UVAezVJxUJq8QiFz",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "86i2SSI8W5uMJ8BJ",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/86i2SSI8W5uMJ8BJ",
+          "cachedResultName": "WORKER 2 - Debt Negotiator (GROQ REAL)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        16,
+        144
+      ],
+      "id": "5cb4092b-75f0-4dd3-b66e-85040a9e24de",
+      "name": "Call 'WORKER 2 - Debt Negotiator (GROQ REAL)'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "5YUJNAl75tBhTP1H",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/5YUJNAl75tBhTP1H",
+          "cachedResultName": "WORKER 3 - Supervisor Alert (TELEGRAM)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        32,
+        352
+      ],
+      "id": "2e76ea29-ce9d-425b-a4ad-22ac06dfeaeb",
+      "name": "Call 'WORKER 3 - Supervisor Alert (TELEGRAM)'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "nnmF3LjW34IQyReV",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/nnmF3LjW34IQyReV",
+          "cachedResultName": "WORKER 1 - Data Retriever (REAL)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        16,
+        -32
+      ],
+      "id": "0b110b1d-d019-4042-b695-2126a3395d5b",
+      "name": "Call 'WORKER 1 - Data Retriever (REAL)'"
+    }
+  ],
+  "pinData": {
+    "Telegram Trigger1": [
+      {
+        "json": {
+          "update_id": 437364529,
+          "message": {
+            "message_id": 50,
+            "from": {
+              "id": 8491456329,
+              "is_bot": false,
+              "first_name": "Carolina",
+              "last_name": "Lemes",
+              "language_code": "es"
+            },
+            "chat": {
+              "id": 8491456329,
+              "first_name": "Carolina",
+              "last_name": "Lemes",
+              "type": "private"
+            },
+            "date": 1786399660,
+            "text": "juan"
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Set - Extraer Mensaje": {
+      "main": [
+        [
+          {
+            "node": "Groq API - ROUTER (llama3-8b)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq API - ROUTER (llama3-8b)": {
+      "main": [
+        [
+          {
+            "node": "Set - Parsear Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Parsear Router": {
+      "main": [
+        [
+          {
+            "node": "Switch - Routing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Routing": {
+      "main": [
+        [
+          {
+            "node": "Call 'WORKER 1 - Data Retriever (REAL)'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'WORKER 2 - Debt Negotiator (GROQ REAL)'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'WORKER 3 - Supervisor Alert (TELEGRAM)'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Consolidar": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Set - Extraer Mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'WORKER 2 - Debt Negotiator (GROQ REAL)'": {
+      "main": [
+        [
+          {
+            "node": "Set - Consolidar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'WORKER 3 - Supervisor Alert (TELEGRAM)'": {
+      "main": [
+        [
+          {
+            "node": "Set - Consolidar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'WORKER 1 - Data Retriever (REAL)'": {
+      "main": [
+        [
+          {
+            "node": "Set - Consolidar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "98195194-2878-45e5-8d4f-ff966e55d573",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a8424d678d0a353446eec61b677732c76989ea1943a00cd3a5c639891451c875"
+  },
+  "nodeGroups": [],
+  "id": "oz8mcjMP2JjAQIG5",
+  "tags": []
+}
