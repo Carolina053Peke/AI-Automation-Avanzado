@@ -1,0 +1,621 @@
+{
+  "name": "triage Medico - Gmail HITL",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        32
+      ],
+      "id": "07c8069a-9cae-4aee-a24a-382ced56c77a",
+      "name": "When chat message received",
+      "webhookId": "c8a21d22-8024-41fd-9d8a-52a503ad772b"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Eres un sistema de triage médico. Analiza el siguiente mensaje del paciente: \"{{ $json.chatInput }}\". Tu única tarea es extraer la información y responder ESTRICTAMENTE en formato JSON, sin texto adicional, usando esta estructura: { \"sintoma_principal\": \"descripción breve\", \"nivel_gravedad\": \"ALTA\" o \"BAJA\", \"requiere_medico\": true o false }"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        224,
+        32
+      ],
+      "id": "fa5decaf-75b3-4d79-8122-15b52493a7fc",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-safeguard-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        296,
+        264
+      ],
+      "id": "33e42f20-d24c-4f8b-be86-67e565af46fb",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "KXsr5pfj0wIlWLKb",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  // 1. Capturamos la respuesta de la IA (cambia 'output' por 'text' si tu nodo usa ese nombre)\n  let respuestaIA = item.json.output || item.json.text || \"\";\n\n  // 2. LIMPIEZA: Eliminamos las comillas invertidas de markdown que la IA suele agregar\n  respuestaIA = respuestaIA.replace(/```json/gi, '').replace(/```/gi, '').trim();\n\n  // 3. Extracción segura: Intentamos encontrar el primer '{' y el último '}' por si la IA agregó texto extra antes o después\n  const inicioJson = respuestaIA.indexOf('{');\n  const finJson = respuestaIA.lastIndexOf('}');\n\n  if (inicioJson !== -1 && finJson !== -1) {\n    respuestaIA = respuestaIA.substring(inicioJson, finJson + 1);\n  }\n\n  try {\n    // 4. La magia: Convertimos el texto limpio en un objeto JSON real\n    let datosParseados = JSON.parse(respuestaIA);\n\n    // 5. Guardamos el resultado en una nueva variable limpia llamada \"triage\"\n    item.json.triage = datosParseados;\n\n  } catch (error) {\n    // FALLBACK DE SEGURIDAD: Si la IA alucina y el JSON es ilegible, forzamos ruta segura\n    item.json.triage = {\n      \"sintoma_principal\": \"Error de procesamiento de IA. Requiere lectura manual.\",\n      \"nivel_gravedad\": \"ALTA\", // Ante la duda, siempre derivamos al médico\n      \"requiere_medico\": true\n    };\n    item.json.error_tecnico = error.message;\n  }\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        32
+      ],
+      "id": "dd4fed8b-77ce-4c36-a400-c437d7d66897",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.triage.nivel_gravedad }}",
+                    "rightValue": "ALTA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "57414791-95d6-480f-8c24-7e2c5809fe47"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "4aeb9447-4015-4993-be9c-ee1bb3c2b8d1",
+                    "leftValue": "={{ $json.triage.nivel_gravedad }}",
+                    "rightValue": "BAJA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        32
+      ],
+      "id": "7e086b36-a9db-44b8-a861-b80c8e8504e4",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Redacta una respuesta más digerible y facil de entender para los pacientes"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1024,
+        128
+      ],
+      "id": "299a5822-0364-442a-bae4-6118f7bff477",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-safeguard-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1096,
+        360
+      ],
+      "id": "18cb783a-b5da-4ad1-a27c-53baa6c620a6",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "KXsr5pfj0wIlWLKb",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "carolinalemes.onig@gmail.com",
+        "subject": "🚨 DERIVACIÓN URGENTE — {{ $('Code in JavaScript').item.json.triage.sintoma_principal }}",
+        "message": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto\"><div style=\"background:#c0392b;padding:16px;border-radius:8px 8px 0 0\"><h2 style=\"color:white;margin:0\">🚨 SOLICITUD DE DERIVACIÓN URGENTE</h2></div><div style=\"background:#f9f9f9;padding:24px;border:1px solid #ddd;border-top:none;border-radius:0 0 8px 8px\"><p><strong>Síntoma principal:</strong><br>{{ $json.triage.sintoma_principal }}</p><p><strong>Nivel de gravedad:</strong> <span style=\"color:#c0392b;font-weight:bold\">{{ $json.triage.nivel_gravedad }}</span></p><p>Por favor tomá una decisión:</p><a href=\"{{ $execution.resumeUrl + '&decision=approve' }}\" style=\"display:inline-block;background:#27ae60;color:white;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;margin-right:12px\">✅ APROBAR DERIVACIÓN</a><a href=\"{{ $execution.resumeUrl + '&decision=reject' }}\" style=\"display:inline-block;background:#e74c3c;color:white;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold\">❌ RECHAZAR DERIVACIÓN</a><p style=\"margin:24px 0 0;color:#888;font-size:12px\">⚠️ Este enlace es de un solo uso.</p></div></div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1088,
+        -160
+      ],
+      "id": "bf6ba66b-d191-435e-b3e9-64a276830bcd",
+      "name": "Send a message",
+      "webhookId": "cda466f3-9152-4e9e-8bf6-bb0d337e861b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "VxBE8Z89DiLjZAM2",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "resumeAmount": 60,
+        "resumeUnit": "seconds",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1376,
+        -160
+      ],
+      "id": "6743dfe9-49c1-4acf-9ff8-53712d64a88b",
+      "name": "Wait",
+      "webhookId": "87e031c6-0f9e-4ff2-8e5e-7a78def7815c"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.query.decision }}",
+                    "rightValue": "approve",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "cc59ea77-ca8a-4a22-b4c2-28dd8fdfce92"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "86fefaa6-d238-4295-a26e-3dc2f23aac88",
+                    "leftValue": "={{ $json.query.decision }}",
+                    "rightValue": "reject",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1600,
+        -176
+      ],
+      "id": "22a18241-e94b-4871-9b0b-fce95b0e1336",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e2c7f224-6ff7-4b8c-9012-bc69d0273cd2",
+              "name": "ESCALAMIENTO AUTOMÁTICO",
+              "value": "Sin respuesta del médico de guardia, se eleva a médico de turno.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1824,
+        80
+      ],
+      "id": "a95bdd2e-9de8-4f8b-b382-b2eaa39fa7df",
+      "name": "Set - Escalamiento"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "31a8ce9e-ac98-45e9-9ce9-f8d9abfbada5",
+              "name": "APROBADO",
+              "value": "Derivación confirmada. Enviando ambulancia",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1824,
+        -304
+      ],
+      "id": "33d2accd-b05a-440d-957a-72ee2c79fd5a",
+      "name": "Set - Aprobado"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4f97f21b-c28c-4c7d-8f5d-db822281f7db",
+              "name": "RECHAZADO",
+              "value": "Médico denegó la derivación, se considera baja la urgencia.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1824,
+        -144
+      ],
+      "id": "56903573-976b-4ddc-9771-6dc299972515",
+      "name": "Set - Rechazado"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "17dcEHmNfBB_UTWtfC09ONgABtShjFrwr3hQyFTKUNaY",
+          "mode": "list",
+          "cachedResultName": "Registro de respuesta",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17dcEHmNfBB_UTWtfC09ONgABtShjFrwr3hQyFTKUNaY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17dcEHmNfBB_UTWtfC09ONgABtShjFrwr3hQyFTKUNaY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha": "={{ $now }}",
+            "Paciente": "={{ $('When chat message received').item.json.sessionId || 'chat_n8n' }}",
+            "Sintoma": "={{  $('Code in JavaScript').item.json.triage.sintoma_principal}}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Paciente",
+              "displayName": "Paciente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sintoma",
+              "displayName": "Sintoma",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Respuesta generada",
+              "displayName": "Respuesta generada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Motivo_Jurado",
+              "displayName": "Motivo_Jurado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2048,
+        -160
+      ],
+      "id": "33fd1568-c52f-4306-954b-c2128289211b",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Ld7Mxi2IVDztS5eT",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Set - Aprobado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - Rechazado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - Escalamiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Aprobado": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Rechazado": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Escalamiento": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "783cb334-0320-4eaa-89d8-8033ca74aa68",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a8424d678d0a353446eec61b677732c76989ea1943a00cd3a5c639891451c875"
+  },
+  "nodeGroups": [],
+  "id": "T4KxB2HRD9yaRJZY",
+  "tags": []
+}

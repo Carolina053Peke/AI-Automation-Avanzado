@@ -1,0 +1,267 @@
+{
+  "name": "Paso1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        -192
+      ],
+      "id": "77d63001-67e9-4612-9eca-0665ada91986",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://www.who.int/docs/default-source/coronaviruse/covid-19-master-ffx-protocol-v2-sp-web.pdf",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        288,
+        -192
+      ],
+      "id": "d619750c-fbf3-4e1b-81cb-ede916247bca",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "comi-102",
+          "mode": "list",
+          "cachedResultName": "comi-102"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        720,
+        -224
+      ],
+      "id": "b470fbcb-435a-4490-a498-9d14626f2c47",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "6pyTSXBRhLtJqnGj",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v3.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        592,
+        -16
+      ],
+      "id": "5b0e42be-a816-442c-94ba-b785733464e3",
+      "name": "Embeddings Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "zA9IJ6RIbxqHkPXd",
+          "name": "Cohere account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "textSplittingMode": "custom",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        1024,
+        32
+      ],
+      "id": "b3f0a9b4-ef43-4a99-b1f6-c8c5a0cd28d9",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 150,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        704,
+        160
+      ],
+      "id": "bb7001e3-f76f-4e2f-b9b0-10c3cfe59776",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "content": "HTTP Request\nDescarga un archivo PDF desde una URL (en este caso, el protocolo FFX de COVID-19 de la OMS). Está configurado con responseFormat: file, así que el resultado es el archivo binario del PDF, no texto plano.",
+        "height": 304,
+        "width": 416
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        144,
+        -352
+      ],
+      "typeVersion": 1,
+      "id": "9c8ed317-1e93-4040-9a1e-feffd7df5dfb",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Nodo final que inserta (mode: insert) los documentos ya vectorizados en el índice nueva-102 de Pinecone. Recibe los embeddings desde Cohere y los documentos ya divididos desde el Data Loader, y los guarda para búsquedas semánticas futuras (RAG).",
+        "height": 272,
+        "width": 544
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        704,
+        -352
+      ],
+      "typeVersion": 1,
+      "id": "7985c291-9573-4913-a622-eb3ea50a66d3",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\nToma el archivo binario (el PDF descargado) y lo procesa como fuente de documentos. Usa el splitter de arriba (ai_textSplitter) para trocear el contenido antes de pasarlo al vector store. dataType: binary indica que la entrada es un archivo, no texto plano.",
+        "height": 368,
+        "width": 528,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1008,
+        -48
+      ],
+      "typeVersion": 1,
+      "id": "4c960033-abc3-47e8-8d29-0d94b176b887",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\nDivide el texto extraído del documento en fragmentos (chunks) más pequeños, con un solapamiento (chunkOverlap) de 150 caracteres entre fragmentos consecutivos. Esto ayuda a que no se pierda contexto entre los cortes de texto.",
+        "height": 304,
+        "width": 528,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        352,
+        176
+      ],
+      "typeVersion": 1,
+      "id": "c3a3b94a-7863-4548-8ff8-6b0c21373590",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0e0733f2-16b9-468f-b0ad-02bbf89fd077",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1280,
+        480
+      ],
+      "id": "64a2a79b-0a59-4fdd-b3e8-76a0b0b2b1b5",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "13b42452-4607-464b-90b4-882cc0385112",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6dc87222261941ebc628bfd70f199cb128a578460b3de3df723b973d5cf80fc1"
+  },
+  "nodeGroups": [],
+  "id": "QwQFcWGwRzpxZrcc",
+  "tags": []
+}
