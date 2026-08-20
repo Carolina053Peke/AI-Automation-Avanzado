@@ -1,0 +1,41 @@
+//Json + HTML
+
+for (const item of $input.all()) {
+  // 1. Capturamos la respuesta de la IA (cambia 'output' por 'text' si tu nodo usa ese nombre)
+  let respuestaIA = item.json.output || item.json.text || "";
+
+  // 2. LIMPIEZA: Eliminamos las comillas invertidas de markdown que la IA suele agregar
+  respuestaIA = respuestaIA.replace(/```json/gi, '').replace(/```/gi, '').trim();
+
+  // 3. Extracción segura: Intentamos encontrar el primer '{' y el último '}' por si la IA agregó texto extra antes o después
+  const inicioJson = respuestaIA.indexOf('{');
+  const finJson = respuestaIA.lastIndexOf('}');
+
+  if (inicioJson !== -1 && finJson !== -1) {
+    respuestaIA = respuestaIA.substring(inicioJson, finJson + 1);
+  }
+
+  try {
+    // 4. La magia: Convertimos el texto limpio en un objeto JSON real
+    let datosParseados = JSON.parse(respuestaIA);
+
+    // 5. Guardamos el resultado en una nueva variable limpia llamada "triage"
+    item.json.triage = datosParseados;
+
+  } catch (error) {
+    // FALLBACK DE SEGURIDAD: Si la IA alucina y el JSON es ilegible, forzamos ruta segura
+    item.json.triage = {
+      "sintoma_principal": "Error de procesamiento de IA. Requiere lectura manual.",
+      "nivel_gravedad": "ALTA", // Ante la duda, siempre derivamos al médico
+      "requiere_medico": true
+    };
+    item.json.error_tecnico = error.message;
+  }
+}
+
+return $input.all();
+
+
+
+—-----------------------------------------------------------------------------------------------------------
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><div style="background:#c0392b;padding:16px;border-radius:8px 8px 0 0"><h2 style="color:white;margin:0">🚨 SOLICITUD DE DERIVACIÓN URGENTE</h2></div><div style="background:#f9f9f9;padding:24px;border:1px solid #ddd;border-top:none;border-radius:0 0 8px 8px"><p><strong>Síntoma principal:</strong><br>{{ $json.triage.sintoma_principal }}</p><p><strong>Nivel de gravedad:</strong> <span style="color:#c0392b;font-weight:bold">{{ $json.triage.nivel_gravedad }}</span></p><p>Por favor tomá una decisión:</p><a href="{{ $execution.resumeUrl + '&decision=approve' }}" style="display:inline-block;background:#27ae60;color:white;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;margin-right:12px">✅ APROBAR DERIVACIÓN</a><a href="{{ $execution.resumeUrl + '&decision=reject' }}" style="display:inline-block;background:#e74c3c;color:white;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold">❌ RECHAZAR DERIVACIÓN</a><p style="margin:24px 0 0;color:#888;font-size:12px">⚠️ Este enlace es de un solo uso.</p></div></div>
