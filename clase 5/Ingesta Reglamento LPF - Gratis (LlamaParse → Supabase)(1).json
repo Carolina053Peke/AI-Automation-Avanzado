@@ -1,0 +1,217 @@
+{
+  "name": "Ingesta Reglamento LPF - Gratis (LlamaParse → Supabase)",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Ingesta Reglamento LPF",
+        "formDescription": "Subí el markdown exportado de LlamaParse desde tu PC (una sola vez).",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Archivo Markdown",
+              "fieldType": "file",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3df9dd18-9d50-41e9-9a3c-94ba78ca1286",
+      "name": "Subir Markdown",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        304
+      ],
+      "webhookId": "eb55513f-6b49-4ea4-a335-3f822297764e"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nif (!items.length) {\n  throw new Error('No llegó ningún archivo. Abrí el formulario del nodo \"Subir Markdown\" y subí el .md desde tu PC.');\n}\n\nconst item = items[0];\nconst binaryKeys = Object.keys(item.binary || {});\n\nif (!binaryKeys.length) {\n  throw new Error('El formulario no trajo archivo. Elegí reglamento-lpf-2025.md antes de enviar.');\n}\n\nconst binaryKey = binaryKeys[0];\nconst buffer = await this.helpers.getBinaryDataBuffer(0, binaryKey);\nconst text = buffer.toString('utf8');\n\nif (!text.trim()) {\n  throw new Error('El archivo markdown está vacío.');\n}\n\nreturn [{\n  json: {\n    source: 'Reglamento-General-LPF-2025.pdf'\n  },\n  binary: {\n    data: await this.helpers.prepareBinaryData(\n      buffer,\n      'reglamento-lpf-2025.md',\n      'text/markdown'\n    )\n  }\n}];"
+      },
+      "id": "85c9e681-9f02-4ed4-ad94-126e51982ab8",
+      "name": "Extraer Texto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "binaryMode": "specificField",
+        "loader": "textLoader",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "source",
+                "value": "Reglamento-General-LPF-2025.pdf"
+              }
+            ]
+          }
+        }
+      },
+      "id": "cd3cd86d-c17f-4769-8a1e-ef6cfa5b1e92",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        1232,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 150,
+        "options": {}
+      },
+      "id": "686b483f-290f-477a-a0c4-dda8e032e768",
+      "name": "Recursive Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        1664,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "document_chunks",
+          "mode": "list",
+          "cachedResultName": "document_chunks"
+        },
+        "options": {}
+      },
+      "id": "173f4c13-9b53-4a43-af1e-6e25cb2b35ba",
+      "name": "Supabase Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [
+        1072,
+        304
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "rFnIOyBAzlYm1aw5",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "cb0466e2-5c7c-4568-9f48-365d71af5eae",
+      "name": "Embeddings OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        912,
+        560
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "vK1VMr2foKPv0226",
+          "name": "Gpt-prod"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### 📤 Cargar desde tu PC\n\n1. Clic en **Subir Markdown** → **Test step**\n2. Se abre formulario en el navegador\n3. Elegí el `.md` de Downloads\n4. Enviar → esperá 2-5 min",
+        "height": 180,
+        "width": 380,
+        "color": 4
+      },
+      "id": "0dc7dcc3-e461-4b27-9a39-07c76cceed1a",
+      "name": "Nota - Pasos",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### ⚠️ Por qué fallaba Leer Markdown\n\nn8n **Cloud** no puede leer `C:/Users/...`.\n\nEl formulario sí recibe el archivo desde tu PC vía navegador.",
+        "width": 380,
+        "color": 5
+      },
+      "id": "1a59fc1e-0604-437e-96dd-3e03e723e0a4",
+      "name": "Nota - Cloud",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        592,
+        16
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Subir Markdown": {
+      "main": [
+        [
+          {
+            "node": "Extraer Texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Texto": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "0eba637b-2bb8-47d4-a208-1c2febf618fc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5cb75de0859cc77273acb472ce60738c938c759ff5b1b08603f7c03b5ff97c9d"
+  },
+  "id": "S0dm311yh3LjqScZ",
+  "tags": []
+}

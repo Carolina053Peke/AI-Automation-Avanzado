@@ -1,0 +1,375 @@
+{
+  "name": "Bot Fútbol Argentino - Telegram + Supabase (gratis)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "ba26f382-3b61-4ddb-b156-e4dc2d73eb3e",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -656,
+        240
+      ],
+      "webhookId": "cfeb2265-0483-41c6-a05c-e4c744ca654b",
+      "credentials": {
+        "telegramApi": {
+          "id": "mB5yUhWqKSNG7DXF",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "tg-chat-input",
+              "name": "chatInput",
+              "type": "string",
+              "value": "={{ $json.message.text || '' }}"
+            },
+            {
+              "id": "tg-session-id",
+              "name": "sessionId",
+              "type": "string",
+              "value": "={{ $json.message.chat.id }}"
+            },
+            {
+              "id": "tg-chat-id",
+              "name": "chatId",
+              "type": "string",
+              "value": "={{ $json.message.chat.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "73763888-823d-46ab-a8b5-bfa8254f1c45",
+      "name": "Preparar entrada Telegram",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -288,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "Sos un asistente experto en fútbol argentino. Respondés usando EXCLUSIVAMENTE el Reglamento General LPF 2025 almacenado en la base vectorial (Supabase).\n\nReglas:\n1. Buscar siempre: usá la herramienta de Vector Store antes de responder.\n2. No inventar: si el dato no está en los fragmentos, respondé: 'No encontré ese dato en el reglamento. ¿Querés preguntarme otra cosa?'\n3. Citar la fuente: [Fuente: Reglamento General LPF 2025].\n4. Tono: claro y apasionado.\n\nNo uses conocimiento general fuera del documento."
+        }
+      },
+      "id": "5cf32f65-2a60-4d12-8772-ad06c28e3aca",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        160,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Preparar entrada Telegram').item.json.chatId }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "03ca8a1e-0c7c-48c2-9563-dd83c39e8907",
+      "name": "Telegram - Enviar respuesta",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        784,
+        144
+      ],
+      "webhookId": "0efdcb20-f5c4-410b-9d88-8579ad8d7602",
+      "credentials": {
+        "telegramApi": {
+          "id": "mB5yUhWqKSNG7DXF",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId }}",
+        "contextWindowLength": 10
+      },
+      "id": "f8215a25-78d7-481b-8d6e-ea45d73809c8",
+      "name": "Memoria de Conversación",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        128,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Buscar fragmentos del Reglamento General LPF 2025. Usar SIEMPRE ante preguntas sobre reglas, equipos, partidos, sanciones, torneos o fútbol argentino profesional."
+      },
+      "id": "2a083acf-406b-4e62-a4f3-38f6edd0317f",
+      "name": "Vector Store Retrieve Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "typeVersion": 1.1,
+      "position": [
+        416,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "tableName": {
+          "__rl": true,
+          "value": "document_chunks",
+          "mode": "list",
+          "cachedResultName": "document_chunks"
+        },
+        "options": {
+          "queryName": "match_document_chunks"
+        }
+      },
+      "id": "09baf772-b557-44fa-a803-4dcdf4293ac8",
+      "name": "Vector Store Supabase",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [
+        464,
+        592
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "rFnIOyBAzlYm1aw5",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "28e53fab-195e-46d2-a95a-6ee679b80729",
+      "name": "Embeddings",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        432,
+        816
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "vK1VMr2foKPv0226",
+          "name": "Gpt-prod"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### ⚽ Chat (gratis)\n\nTelegram → AI Agent → **Supabase** (vectores) → Telegram\n\nSin LlamaCloud Index de pago.\n\nPrimero ejecutá **2-ingesta-reglamento.json** una vez.",
+        "height": 180,
+        "width": 360,
+        "color": 4
+      },
+      "id": "0ec1bf12-0693-48e1-b31f-db21126146b3",
+      "name": "Nota - Flujo",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 🗄️ Supabase\n\n1. Ejecutá SQL: `supabase/migrations/document_chunks.sql`\n2. Credencial Supabase en n8n (URL + Service Role Key)\n3. Tabla: `document_chunks`\n4. Función: `match_document_chunks`",
+        "height": 200,
+        "width": 360,
+        "color": 5
+      },
+      "id": "72e7ecf9-5df3-4285-aa3d-9fd42ce294a7",
+      "name": "Nota - Supabase",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -48,
+        448
+      ],
+      "id": "4e326ee0-1e96-4a69-b979-d8148b1df8c4",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "vK1VMr2foKPv0226",
+          "name": "Gpt-prod"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        272,
+        592
+      ],
+      "id": "ad7fc097-03ab-4948-b54f-b3560803fff3",
+      "name": "OpenAI Chat Model Retrieve",
+      "credentials": {
+        "openAiApi": {
+          "id": "vK1VMr2foKPv0226",
+          "name": "Gpt-prod"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Preparar entrada Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar entrada Telegram": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Enviar respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria de Conversación": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Store Retrieve Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Store Supabase": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Vector Store Retrieve Tool",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Vector Store Supabase",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model Retrieve": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Vector Store Retrieve Tool",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "04974c62-29ab-42ce-9160-9d55cd6b9136",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5cb75de0859cc77273acb472ce60738c938c759ff5b1b08603f7c03b5ff97c9d"
+  },
+  "id": "FqKOOBaVotW36aSk",
+  "tags": []
+}
