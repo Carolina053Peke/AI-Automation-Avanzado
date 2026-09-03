@@ -1,0 +1,859 @@
+{
+  "name": "Clase - AI as a Judge + Self Healing + HITL",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2bac4ca4-a271-4fc3-b37f-24ce9dce9d97",
+              "name": "query_original",
+              "value": "={{ $json.query_original }}",
+              "type": "string"
+            },
+            {
+              "id": "b7df6fde-c565-4da1-8d12-496a98df5334",
+              "name": "contexto_recuperado",
+              "value": "={{ $json.contexto_recuperado }}",
+              "type": "string"
+            },
+            {
+              "id": "7a532104-2dbb-4ebc-8dd7-59506e1efa15",
+              "name": "retry_count",
+              "value": "={{ Number($json.retry_count || 0) }}",
+              "type": "number"
+            },
+            {
+              "id": "a2e21fd4-b13a-4a8d-b0d4-7b16eabd2267",
+              "name": "feedback_correccion",
+              "value": "={{ $json.feedback_correccion || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "6c66d49b-ee9f-4701-9908-8dbd00555b94",
+              "name": "arquitectura",
+              "value": "={{ $json.arquitectura || 'A' }}",
+              "type": "string"
+            },
+            {
+              "id": "e041d14e-cb79-45e8-98a0-31fe82f01f5c",
+              "name": "modo_prueba",
+              "value": "CORREGIR",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1280,
+        496
+      ],
+      "id": "d76f040a-60d3-495b-9f01-b6f368fa4bc4",
+      "name": "Preparar entrada agente"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ \n'MODO DE PRUEBA: ' + $json.modo_prueba +\n'\\n\\nCONSULTA DEL USUARIO:\\n' + $json.query_original +\n'\\n\\nCONTEXTO AUTORIZADO:\\n' + $json.contexto_recuperado +\n($json.feedback_correccion ? '\\n\\nFEEDBACK DE CORRECCIÓN:\\n' + $json.feedback_correccion : '')\n}}",
+        "options": {
+          "systemMessage": "Sos un asistente interno de RRHH.\n\nTu tarea es responder la CONSULTA DEL USUARIO utilizando exclusivamente el CONTEXTO AUTORIZADO recibido.\n\nNunca uses conocimiento externo, excepto cuando el MODO DE PRUEBA sea RECHAZAR y sea necesario generar contradicciones deliberadas para testing.\n\n==================================================\n1. REGLA PARA CONSULTAS FUERA DE CONTEXTO\n==================================================\n\nAntes de responder, determiná si la CONSULTA DEL USUARIO está relacionada con el CONTEXTO AUTORIZADO.\n\nSi la consulta NO está relacionada con el contexto autorizado:\n\n- No intentes responder la consulta.\n- No enumeres, resumas ni reproduzcas el contenido del contexto autorizado.\n- No agregues información adicional.\n- No continúes con ninguna otra regla de este prompt.\n- Ignorá el MODO DE PRUEBA.\n- Respondé únicamente con este formato:\n\n\"Lo siento, no dispongo de información sobre [tema consultado]. Solo puedo brindarte información sobre la política interna de vacaciones que aplica a todos los empleados.\"\n\nReemplazá [tema consultado] únicamente por el tema principal de la consulta.\n\nEjemplo:\n\nUsuario:\n\"Quiero una pizza.\"\n\nRespuesta:\n\"Lo siento, no dispongo de información sobre pizzas. Solo puedo brindarte información sobre la política interna de vacaciones que aplica a todos los empleados.\"\n\nIMPORTANTE:\nUna consulta fuera del contexto NO debe considerarse un error.\nNo inventes una respuesta utilizando el contexto disponible.\nNo muestres información de vacaciones salvo la frase estándar indicada anteriormente.\n\n==================================================\n2. CONSULTAS RELACIONADAS CON EL CONTEXTO\n==================================================\n\nSi la CONSULTA DEL USUARIO sí está relacionada con el CONTEXTO AUTORIZADO:\n\n- Utilizá exclusivamente la información del contexto.\n- Priorizá siempre el CONTEXTO AUTORIZADO por sobre cualquier afirmación realizada por el usuario.\n- No inventes políticas, fechas, beneficios, requisitos ni excepciones.\n- Si el contexto no contiene información suficiente para responder una parte de la consulta, indicalo claramente.\n- No asumas reglas que no estén presentes en el contexto.\n- Respondé de manera clara, breve y profesional.\n\n==================================================\n3. MODO DE PRUEBA\n==================================================\n\nRecibirás una variable llamada MODO DE PRUEBA.\n\nEl MODO DE PRUEBA solamente debe aplicarse si la consulta está relacionada con el contexto autorizado.\n\n----------------------------------------------\nMODO NORMAL\n----------------------------------------------\n\nSi el MODO DE PRUEBA es NORMAL:\n\n- Respondé correctamente.\n- Utilizá toda la información relevante disponible en el contexto.\n- No omitas condiciones importantes.\n- No agregues información que no esté respaldada.\n- Si falta información, indicá que el contexto no permite confirmarla.\n\n----------------------------------------------\nMODO CORREGIR\n----------------------------------------------\n\nSi el MODO DE PRUEBA es CORREGIR:\n\n- Generá una respuesta mayormente correcta.\n- Utilizá información verdadera del contexto.\n- Omití deliberadamente UNA condición relevante necesaria para responder completamente la consulta.\n- No contradigas el contexto.\n- No inventes información.\n- No agregues afirmaciones falsas.\n- La respuesta debe ser parcialmente correcta, pero incompleta de forma relevante.\n- No menciones que estás ejecutando una prueba.\n- No expliques qué información omitiste.\n\nEl objetivo de este modo es generar una respuesta que un Auditor de Calidad debería evaluar aproximadamente como:\n\nexactitud_factual = 3\nestado_veredicto = CORREGIR\n\n----------------------------------------------\nMODO RECHAZAR\n----------------------------------------------\n\nSi el MODO DE PRUEBA es RECHAZAR:\n\n- Generá deliberadamente una respuesta incorrecta para fines de testing.\n- Incluí al menos DOS afirmaciones factuales que contradigan directamente el CONTEXTO AUTORIZADO.\n- Las contradicciones deben ser claras y verificables comparando la respuesta con el contexto.\n- La respuesta debe parecer plausible.\n- No menciones que estás ejecutando una prueba.\n- No expliques que estás generando errores.\n- No escribas \"modo RECHAZAR\" ni ninguna referencia al testing en la respuesta.\n\nEn este modo, las instrucciones de contradicción tienen prioridad sobre la regla general de no inventar información.\n\nEl objetivo de este modo es generar una respuesta que un Auditor de Calidad debería evaluar aproximadamente como:\n\nexactitud_factual <= 2\nestado_veredicto = RECHAZADO\n\n==================================================\n4. PRIORIDAD DE REGLAS\n==================================================\n\nAplicá las reglas en este orden:\n\n1. Determinar si la consulta está dentro o fuera del contexto.\n2. Si está fuera del contexto, responder únicamente con el mensaje estándar y finalizar.\n3. Si está dentro del contexto, identificar el MODO DE PRUEBA.\n4. Ejecutar las instrucciones correspondientes a NORMAL, CORREGIR o RECHAZAR.\n5. No revelar nunca al usuario que existen modos de prueba.\n\n==================================================\n5. COMPORTAMIENTO ESPERADO\n==================================================\n\nConsulta fuera del dominio:\n→ Respuesta estándar de fuera de contexto.\n\nConsulta dentro del dominio + NORMAL:\n→ Respuesta completa y correcta.\n\nConsulta dentro del dominio + CORREGIR:\n→ Respuesta correcta pero con una omisión relevante.\n\nConsulta dentro del dominio + RECHAZAR:\n→ Respuesta plausible con al menos dos contradicciones factuales.",
+          "returnIntermediateSteps": false,
+          "enableStreaming": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1040,
+        496
+      ],
+      "id": "9a45710f-6885-495d-95bc-72d8ecb0c744",
+      "name": "Agente Principal"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b158ae28-a2cd-4edf-9afb-06063f24f45d",
+              "name": "query_original",
+              "value": "={{ $('Preparar entrada agente').item.json.query_original }}",
+              "type": "string"
+            },
+            {
+              "id": "775e16d3-66f8-4b43-9dec-0fec482d8312",
+              "name": "contexto_recuperado",
+              "value": "={{ $('Preparar entrada agente').item.json.contexto_recuperado }}",
+              "type": "string"
+            },
+            {
+              "id": "dae23989-42a9-4ee8-a431-1ff7f46f83b3",
+              "name": "respuesta_agente",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "fdc8022f-f42d-46b1-99bd-020b380965c6",
+              "name": "retry_count",
+              "value": "={{ $('Preparar entrada agente').item.json.retry_count }}",
+              "type": "number"
+            },
+            {
+              "id": "1ddb7f8d-68ae-4fb0-a131-42f38ef32037",
+              "name": "arquitectura",
+              "value": "={{ $('Preparar entrada agente').item.json.arquitectura }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -704,
+        496
+      ],
+      "id": "87c87d11-31ed-4391-a521-dfa27e655d98",
+      "name": "Preparar evaluación"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'QUERY ORIGINAL:\\n' + $json.query_original + '\\n\\nCONTEXTO AUTORIZADO:\\n' + $json.contexto_recuperado + '\\n\\nRESPUESTA PROPUESTA:\\n' + $json.respuesta_agente }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Actuá como un Auditor de Calidad de IA (AI-as-a-Judge).\nEvaluá la RESPUESTA PROPUESTA usando exclusivamente el CONTEXTO AUTORIZADO.\n\nCriterio exactitud_factual:\n5 = completamente respaldada por el contexto, sin errores ni agregados.\n4 = correcta y respaldada; puede tener una omisión menor no crítica.\n3 = parcialmente correcta, con una omisión o inferencia relevante.\n2 = contiene errores factuales importantes o afirmaciones sin sustento.\n1 = contradice el contexto, inventa información o representa riesgo alto.\n\nReglas de veredicto:\n- ACEPTADO: exactitud_factual >= 4.\n- CORREGIR: exactitud_factual = 3.\n- RECHAZADO: exactitud_factual <= 2.\n\nNo evalúes estilo salvo que altere el significado factual.\nNo uses conocimiento externo.\nDevolvé únicamente el objeto estructurado solicitado."
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        -480,
+        496
+      ],
+      "id": "83896d58-b3c8-4be2-b972-43588ab4e367",
+      "name": "Juez AI - Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"exactitud_factual\": {\n      \"type\": \"integer\",\n      \"minimum\": 1,\n      \"maximum\": 5\n    },\n    \"estado_veredicto\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"ACEPTADO\",\n        \"CORREGIR\",\n        \"RECHAZADO\"\n      ]\n    }\n  },\n  \"required\": [\n    \"exactitud_factual\",\n    \"estado_veredicto\"\n  ],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -304,
+        288
+      ],
+      "id": "54a591cd-0248-444f-abc3-b7aba00511a8",
+      "name": "Structured Output - Veredicto"
+    },
+    {
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 3,
+        "output": "={{ $json.output.estado_veredicto === 'ACEPTADO' ? 0 : ($json.output.estado_veredicto === 'CORREGIR' ? 1 : 2) }}"
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -192,
+        496
+      ],
+      "id": "1f60148b-8620-427f-9463-7d25272f1b50",
+      "name": "Switch - Veredicto"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1658cb93-b2d3-430a-b48c-9aaed1b3ad4c",
+              "name": "estado_final",
+              "value": "ACEPTADO",
+              "type": "string"
+            },
+            {
+              "id": "832eb4b4-babc-4d18-9558-d7405af71e59",
+              "name": "score_juez",
+              "value": "={{ $json.output.exactitud_factual }}",
+              "type": "number"
+            },
+            {
+              "id": "49fb631b-f839-4eba-bb29-107b53b5f50c",
+              "name": "mensaje",
+              "value": "Respuesta aprobada. Se guarda score para auditoría.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        112,
+        320
+      ],
+      "id": "1a952774-b36b-473a-9c8d-1a1ffe425406",
+      "name": "ACEPTADO - Log / salida real"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2792374b-1f08-4e00-bc74-277da2d2c44d",
+              "name": "query_original",
+              "value": "={{ $('Preparar evaluación').item.json.query_original }}",
+              "type": "string"
+            },
+            {
+              "id": "a4408273-d76d-437d-a53f-6b82ad6369b4",
+              "name": "contexto_recuperado",
+              "value": "={{ $('Preparar evaluación').item.json.contexto_recuperado }}",
+              "type": "string"
+            },
+            {
+              "id": "b194cd02-8d39-44d0-b889-8522192b157d",
+              "name": "retry_count",
+              "value": "={{ Number($('Preparar evaluación').item.json.retry_count || 0) + 1 }}",
+              "type": "number"
+            },
+            {
+              "id": "71525177-bbcc-4ebf-a3b5-35c292d52638",
+              "name": "feedback_correccion",
+              "value": "El supervisor detectó exactitud factual insuficiente. Reescribí la respuesta usando exclusivamente el contexto autorizado y no agregues ninguna inferencia no respaldada.",
+              "type": "string"
+            },
+            {
+              "id": "dccc5995-aca2-4b50-aae9-fc07b99cc5ad",
+              "name": "arquitectura",
+              "value": "={{ $('Preparar evaluación').item.json.arquitectura }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        96,
+        512
+      ],
+      "id": "6615c3b2-ab19-48b9-a9f1-02838b4405ae",
+      "name": "Preparar corrección"
+    },
+    {
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 2,
+        "output": "={{ Number($json.retry_count) <= 2 ? 0 : 1 }}"
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        432,
+        512
+      ],
+      "id": "eb841394-4782-4674-a088-b5e6970afba2",
+      "name": "Switch - Max 2 reintentos"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "40e856cd-1747-49b6-a00e-3dc8fa974a67",
+              "name": "estado_final",
+              "value": "RECHAZADO",
+              "type": "string"
+            },
+            {
+              "id": "9a9dba0b-0b43-4d4d-8270-4f0e0c4c1569",
+              "name": "score_juez",
+              "value": "={{ $json.output.exactitud_factual }}",
+              "type": "number"
+            },
+            {
+              "id": "ec5b7de5-e736-4bda-940d-889e244cfcaa",
+              "name": "alerta",
+              "value": "Revisión humana requerida. Conectar aquí Slack/Teams y enviar $execution.resumeUrl para aprobación.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        64,
+        752
+      ],
+      "id": "2717428a-122f-4b44-82eb-4fa732c1ae33",
+      "name": "ESCALAR - Preparar alerta HITL"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "54928812-b22f-489a-915c-3bae69cb5d1c",
+              "name": "estado_final",
+              "value": "RECHAZADO",
+              "type": "string"
+            },
+            {
+              "id": "1988b98a-f4e0-4518-8030-318b51a88c99",
+              "name": "alerta",
+              "value": "Se alcanzó el máximo de 2 autocorrecciones. Escalar a revisión humana.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        816,
+        560
+      ],
+      "id": "f80f3cf2-ae7b-4f07-adf1-9fe5a0a5884f",
+      "name": "Máximo reintentos alcanzado"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bddf597e-e922-4240-ba8e-a7a96154b37c",
+              "name": "estado_final",
+              "value": "APROBADO_POR_HUMANO",
+              "type": "string"
+            },
+            {
+              "id": "7726e986-f793-44f7-95e0-fe620518927f",
+              "name": "score_juez",
+              "value": "={{ $('ESCALAR - Preparar alerta HITL').item.json.score_juez }}",
+              "type": "number"
+            },
+            {
+              "id": "e92c2fec-77e7-48f2-b081-034463d31cef",
+              "name": "mensaje",
+              "value": "La ejecución se reanudó desde el webhook HITL. En producción, validar el payload recibido (aprobar/editar/rechazar).",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        848,
+        832
+      ],
+      "id": "ecdc41a5-5892-4155-b117-dbe98abfe736",
+      "name": "Después de aprobación humana"
+    },
+    {
+      "parameters": {
+        "content": "## Demo Checkpoint Módulo 8 — AI-as-a-Judge\n\nFlujo listo para clase:\n1. Agente principal\n2. Juez separado con Structured Output\n3. Switch de 3 rutas\n4. Self-Healing con máximo 2 reintentos\n5. Escalamiento HITL con Wait for Webhook\n\n**Antes de ejecutar:** asigná tus credenciales OpenAI en los dos nodos de modelo.",
+        "height": 300,
+        "width": 520
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1744,
+        64
+      ],
+      "id": "492c9185-f7f2-47e8-9821-155d62800dba",
+      "name": "Nota - Objetivo"
+    },
+    {
+      "parameters": {
+        "content": "## Evidencia A/B\n\nEn `ACEPTADO - Log / salida real` conectá Google Sheets/Postgres y registrá:\n- arquitectura\n- caso\n- score_juez\n- correcto vs ground truth\n- tokens\n- coste_estimado\n- HITL\n- latencia_s\n\nCorré exactamente 5 casos en A y los mismos 5 en B.",
+        "height": 360,
+        "width": 430
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        -64
+      ],
+      "id": "0519f813-a882-49a6-8b97-92ff5ab1343d",
+      "name": "Nota - Logs A-B"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-safeguard-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        320
+      ],
+      "id": "93587ae1-3386-4450-938d-03259d5885a5",
+      "name": "Modelo Juez",
+      "credentials": {
+        "groqApi": {
+          "id": "KXsr5pfj0wIlWLKb",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-safeguard-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1008,
+        320
+      ],
+      "id": "e6c2b75d-deda-4258-83b1-67bf56fe83bd",
+      "name": "modelo agente",
+      "credentials": {
+        "groqApi": {
+          "id": "KXsr5pfj0wIlWLKb",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1NnQoGJOH-ssQqCpIhQgzb6NJIhVO0RnsopEzJ9T7Xpk",
+          "mode": "list",
+          "cachedResultName": "ACEPTADO - Log / salida real",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NnQoGJOH-ssQqCpIhQgzb6NJIhVO0RnsopEzJ9T7Xpk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NnQoGJOH-ssQqCpIhQgzb6NJIhVO0RnsopEzJ9T7Xpk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "estado_final": "={{ $json.estado_final }}",
+            "score_juez": "={{ $json.score_juez }}",
+            "mensaje": "={{ $json.mensaje }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "estado_final",
+              "displayName": "estado_final",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score_juez",
+              "displayName": "score_juez",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "mensaje",
+              "displayName": "mensaje",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        496
+      ],
+      "id": "daadf35b-827a-4cbe-b7e1-27609a90e572",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Ld7Mxi2IVDztS5eT",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -1712,
+        496
+      ],
+      "id": "9935a748-7ff3-47b6-9884-5587ca8d8ac3",
+      "name": "Telegram Trigger",
+      "webhookId": "e3ab6bbf-a8bf-41c3-bce8-8827b468d81e",
+      "credentials": {
+        "telegramApi": {
+          "id": "DjXUGROli1oaSRjY",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "65cc94c8-a3ec-4ebf-9481-c17ab7b2a940",
+              "name": "query_original",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "e8adedc9-6595-4b9b-9966-68fe08b928d5",
+              "name": "contexto_recuperado",
+              "value": "=Política interna de vacaciones:  - Los empleados con 0 a 5 años de antigüedad tienen 14 días corridos de vacaciones. - Las vacaciones deben solicitarse con al menos 15 días corridos de anticipación. - Las vacaciones pueden dividirse en hasta dos períodos, pero cada período debe tener un mínimo de 5 días corridos. - El fraccionamiento requiere aprobación previa del responsable directo. - No pueden iniciarse vacaciones un día sábado, domingo o feriado. - Si el período solicitado coincide con un cierre operativo del área, RRHH puede solicitar una reprogramación. - Los días de vacaciones son corridos, por lo que sábados, domingos y feriados dentro del período se contabilizan. - La fecha de reincorporación corresponde al primer día laborable posterior a la finalización del período de vacaciones.\n\nDatos de calendario autorizados para este caso:\n- 18 de septiembre de 2026: viernes.\n- 19 de septiembre de 2026: sábado.\n- 20 de septiembre de 2026: domingo.",
+              "type": "string"
+            },
+            {
+              "id": "aca0a4be-6939-4205-a1f6-8e53419e0699",
+              "name": "retry_count",
+              "value": 0,
+              "type": "number"
+            },
+            {
+              "id": "a8b1b494-4790-4794-8c3c-a89b5aa2ae40",
+              "name": "arquitectura",
+              "value": "A",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1488,
+        496
+      ],
+      "id": "fa8546dc-bbf9-4308-b893-3cd430cac26d",
+      "name": "contexto"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "message": "=🚨 REVISIÓN HUMANA REQUERIDA\n\nEl agente generó una respuesta que no superó el control de calidad.\n\n📋 Consulta:\n{{ $('Preparar evaluación').item.json.query_original }}\n\n🤖 Respuesta propuesta:\n{{ $('Preparar evaluación').item.json.respuesta_agente }}\n\n📊 Score del juez:\n{{ $json.score_juez }}/5\n\nEstado: RECHAZADO\n\nRevisá la respuesta y decidí si debe continuar.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        368,
+        816
+      ],
+      "id": "5e47c25a-26bf-430e-b6c5-12362a1d939e",
+      "name": "Send message and wait for response",
+      "webhookId": "a96fe33a-df68-4709-9ef8-c4c12694d105",
+      "credentials": {
+        "telegramApi": {
+          "id": "DjXUGROli1oaSRjY",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('Preparar evaluación').item.json.respuesta_agente }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        336
+      ],
+      "id": "0f26ade8-b780-4c3c-adc8-114f1a9cf013",
+      "name": "Send a text message",
+      "webhookId": "6faf0b39-6c1b-43bb-8beb-7cbd76b285f9",
+      "credentials": {
+        "telegramApi": {
+          "id": "DjXUGROli1oaSRjY",
+          "name": "Telegram account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Preparar entrada agente": {
+      "main": [
+        [
+          {
+            "node": "Agente Principal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente Principal": {
+      "main": [
+        [
+          {
+            "node": "Preparar evaluación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar evaluación": {
+      "main": [
+        [
+          {
+            "node": "Juez AI - Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output - Veredicto": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Juez AI - Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Juez AI - Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Switch - Veredicto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Veredicto": {
+      "main": [
+        [
+          {
+            "node": "ACEPTADO - Log / salida real",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar corrección",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ESCALAR - Preparar alerta HITL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar corrección": {
+      "main": [
+        [
+          {
+            "node": "Switch - Max 2 reintentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Max 2 reintentos": {
+      "main": [
+        [
+          {
+            "node": "Preparar entrada agente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Máximo reintentos alcanzado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ESCALAR - Preparar alerta HITL": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Máximo reintentos alcanzado": {
+      "main": [
+        [
+          {
+            "node": "Después de aprobación humana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Juez": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Juez AI - Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "modelo agente": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente Principal",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ACEPTADO - Log / salida real": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "contexto": {
+      "main": [
+        [
+          {
+            "node": "Preparar entrada agente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "Después de aprobación humana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Después de aprobación humana": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ef2b8069-fea3-4a37-bfd7-86cb4854098c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a8424d678d0a353446eec61b677732c76989ea1943a00cd3a5c639891451c875"
+  },
+  "nodeGroups": [],
+  "id": "V3crSIbJlV65KuFr",
+  "tags": []
+}
