@@ -1,0 +1,775 @@
+{
+  "name": "Clase Final - Oferta IA Agentica por Telegram + ROI + Judge + HITL",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "897b14de-cf8b-40f1-9c1e-33e3b6a2cb57",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1700,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ff66d60c-1920-45e1-b418-c976a7438424",
+              "name": "chat_id",
+              "value": "={{ $json.message.chat.id }}",
+              "type": "number"
+            },
+            {
+              "id": "944620f4-57a8-4187-9056-b5ab5b633197",
+              "name": "texto_cliente",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "4437e488-ebf7-4a64-b360-55f03b49f447",
+              "name": "retry_count",
+              "value": 0,
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true
+      },
+      "id": "78639134-eb7b-4eaa-bc94-2f8669f30f61",
+      "name": "Capturar solicitud Telegram",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Actuá como consultor senior de automatización e IA agéntica.\nTu tarea es transformar el mensaje libre del cliente en un discovery estructurado para evaluar una propuesta técnico-comercial.\n\nMENSAJE DEL CLIENTE:\n{{ $json.texto_cliente }}\n\nExtraé SOLO lo que esté explícito o pueda calcularse de forma directa. No inventes números.\nSi falta un dato importante, colocalo en faltantes.\n\nCampos:\n- cliente\n- industria\n- proceso_actual\n- dolor_operativo\n- volumen_mensual\n- minutos_por_caso\n- costo_hora_humano_usd\n- tasa_error_actual_pct\n- valor_por_conversion_usd\n- conversiones_mensuales_actuales\n- costo_setup_estimado_usd\n- costo_ia_mensual_estimado_usd\n- costo_infra_mensual_estimado_usd\n- horas_soporte_mensual_estimadas\n- costo_hora_soporte_usd\n- kpi_success_fee\n- success_fee_unitario_usd\n- ventana_conversion_dias\n- stakeholders\n- herramientas_actuales\n- restricciones\n- faltantes\n\nReglas:\n1. No uses conocimiento externo.\n2. Si un número no está, dejalo null.\n3. stakeholders y herramientas_actuales deben ser arrays.\n4. faltantes debe incluir únicamente campos realmente necesarios para poder calcular un business case básico.\n5. Para business case básico son obligatorios: volumen_mensual, minutos_por_caso, costo_hora_humano_usd, costo_setup_estimado_usd y costo_ia_mensual_estimado_usd.\n6. Devolvé únicamente el objeto estructurado solicitado.",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "id": "b83eb184-c5c6-4cff-8174-53fa154598fd",
+      "name": "Discovery IA - Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        -1240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "id": "a5a4a13a-4223-427d-b59b-ccce2005785d",
+      "name": "Modelo Discovery - Groq",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1240,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\"type\": \"object\", \"properties\": {\"cliente\": {\"type\": [\"string\", \"null\"]}, \"industria\": {\"type\": [\"string\", \"null\"]}, \"proceso_actual\": {\"type\": [\"string\", \"null\"]}, \"dolor_operativo\": {\"type\": [\"string\", \"null\"]}, \"volumen_mensual\": {\"type\": [\"number\", \"null\"]}, \"minutos_por_caso\": {\"type\": [\"number\", \"null\"]}, \"costo_hora_humano_usd\": {\"type\": [\"number\", \"null\"]}, \"tasa_error_actual_pct\": {\"type\": [\"number\", \"null\"]}, \"valor_por_conversion_usd\": {\"type\": [\"number\", \"null\"]}, \"conversiones_mensuales_actuales\": {\"type\": [\"number\", \"null\"]}, \"costo_setup_estimado_usd\": {\"type\": [\"number\", \"null\"]}, \"costo_ia_mensual_estimado_usd\": {\"type\": [\"number\", \"null\"]}, \"costo_infra_mensual_estimado_usd\": {\"type\": [\"number\", \"null\"]}, \"horas_soporte_mensual_estimadas\": {\"type\": [\"number\", \"null\"]}, \"costo_hora_soporte_usd\": {\"type\": [\"number\", \"null\"]}, \"kpi_success_fee\": {\"type\": [\"string\", \"null\"]}, \"success_fee_unitario_usd\": {\"type\": [\"number\", \"null\"]}, \"ventana_conversion_dias\": {\"type\": [\"number\", \"null\"]}, \"stakeholders\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}, \"herramientas_actuales\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}, \"restricciones\": {\"type\": [\"string\", \"null\"]}, \"faltantes\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}}, \"required\": [\"faltantes\", \"stakeholders\", \"herramientas_actuales\"], \"additionalProperties\": false}"
+      },
+      "id": "af78adf9-457f-44cf-a644-1b3a5b918137",
+      "name": "Structured Output - Discovery",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -1040,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst d = $json.output ?? $json;\nconst required = ['volumen_mensual','minutos_por_caso','costo_hora_humano_usd','costo_setup_estimado_usd','costo_ia_mensual_estimado_usd'];\nconst faltantes = Array.isArray(d.faltantes) ? [...d.faltantes] : [];\nfor (const k of required) {\n  if (d[k] === null || d[k] === undefined || d[k] === '') {\n    if (!faltantes.includes(k)) faltantes.push(k);\n  }\n}\nreturn [{\n  json: {\n    ...d,\n    chat_id: $('Capturar solicitud Telegram').item.json.chat_id,\n    discovery_completo: faltantes.length === 0,\n    faltantes\n  }\n}];\n"
+      },
+      "id": "9fc79165-21a6-41aa-a4f6-a5aa996d2baf",
+      "name": "Validar Discovery",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -980,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "75474885-8101-4570-a10f-51dcd0c699bf",
+              "leftValue": "={{ $json.discovery_completo }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "84e88a73-7613-4bb5-8fbf-c4f45c87a18a",
+      "name": "¿Discovery completo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -760,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "=Para armar el business case me faltan estos datos:\n\n{{ $json.faltantes.map(x => '• ' + x).join('\\n') }}\n\nReenviame un único mensaje con esos datos. Ejemplo:\nvolumen mensual: 1200\nminutos por caso: 12\ncosto hora humano USD: 15\nsetup estimado USD: 3000\ncosto IA mensual USD: 400",
+        "additionalFields": {}
+      },
+      "id": "fdb10870-8537-4d64-be68-63adca0b8cda",
+      "name": "Telegram - Pedir datos faltantes",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -520,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst d = $json;\n\nconst volumen = Number(d.volumen_mensual || 0);\nconst minCaso = Number(d.minutos_por_caso || 0);\nconst costoHora = Number(d.costo_hora_humano_usd || 0);\nconst setup = Number(d.costo_setup_estimado_usd || 0);\nconst ia = Number(d.costo_ia_mensual_estimado_usd || 0);\nconst infra = Number(d.costo_infra_mensual_estimado_usd || 0);\nconst soporteHoras = Number(d.horas_soporte_mensual_estimadas || 0);\nconst soporteHora = Number(d.costo_hora_soporte_usd || 0);\nconst soporte = soporteHoras * soporteHora;\nconst costoManual = volumen * (minCaso / 60) * costoHora;\nconst tcoBase = ia + infra + soporte;\n\nfunction escenario(nombre, factorVolumen, automatizacion, factorCostoIA) {\n  const volumenEsc = volumen * factorVolumen;\n  const valorCapacidad = volumenEsc * (minCaso / 60) * costoHora * automatizacion;\n  const tco = (ia * factorCostoIA) + infra + soporte;\n  const beneficioNeto = valorCapacidad - tco;\n  const roiMensual = tco > 0 ? (beneficioNeto / tco) * 100 : null;\n  const payback = beneficioNeto > 0 ? setup / beneficioNeto : null;\n  const costoEjecucion = volumenEsc > 0 ? tco / volumenEsc : null;\n  return {\n    nombre,\n    volumen_estimado: Math.round(volumenEsc),\n    tasa_automatizacion_pct: automatizacion * 100,\n    capacidad_liberada_usd_mes: Number(valorCapacidad.toFixed(2)),\n    tco_mensual_usd: Number(tco.toFixed(2)),\n    beneficio_neto_mensual_usd: Number(beneficioNeto.toFixed(2)),\n    roi_mensual_pct: roiMensual === null ? null : Number(roiMensual.toFixed(1)),\n    payback_meses: payback === null ? null : Number(payback.toFixed(1)),\n    costo_por_ejecucion_usd: costoEjecucion === null ? null : Number(costoEjecucion.toFixed(4))\n  };\n}\n\nconst escenarios = [\n  escenario('CONSERVADOR', 0.70, 0.60, 1.20),\n  escenario('BASE', 1.00, 0.80, 1.00),\n  escenario('OPTIMISTA', 1.20, 0.90, 0.90),\n];\n\nreturn [{\n  json: {\n    ...d,\n    baseline: {\n      costo_manual_mensual_usd: Number(costoManual.toFixed(2)),\n      horas_manual_mes: Number((volumen * minCaso / 60).toFixed(1))\n    },\n    tco_componentes: {\n      ia_mensual_usd: ia,\n      infraestructura_mensual_usd: infra,\n      soporte_mensual_usd: Number(soporte.toFixed(2))\n    },\n    escenarios\n  }\n}];\n"
+      },
+      "id": "ee80e7ee-927b-439c-95f1-0dda4b349324",
+      "name": "Calcular ROI TCO + Sensibilidad",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -520,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst d = $json;\nconst base = d.escenarios?.find(e => e.nombre === 'BASE') || {};\nconst setup = Number(d.costo_setup_estimado_usd || 0);\nconst retainer = Math.max(\n  Number((base.tco_mensual_usd || 0) * 1.8),\n  Number(d.costo_ia_mensual_estimado_usd || 0) + Number(d.costo_infra_mensual_estimado_usd || 0)\n);\nconst successUnit = Number(d.success_fee_unitario_usd || 0);\n\nreturn [{\n  json: {\n    ...d,\n    modelo_comercial: {\n      recomendado: 'HIBRIDO',\n      setup_fee_usd: setup,\n      retainer_mensual_recomendado_usd: Number(retainer.toFixed(2)),\n      success_fee_kpi: d.kpi_success_fee || 'Conversión atribuible asistida por IA',\n      success_fee_unitario_usd: successUnit || null,\n      ventana_conversion_dias: Number(d.ventana_conversion_dias || 30),\n      incluye_retainer: [\n        'Prompt tuning basado en logs',\n        'Knowledge refresh',\n        'Model management',\n        'Observabilidad activa',\n        'Revisión de AI-as-a-Judge',\n        'Adaptación a cambios externos de APIs/LLMs'\n      ]\n    }\n  }\n}];\n"
+      },
+      "id": "19892585-eb25-44ba-87a9-5fc10aa05031",
+      "name": "Diseñar Modelo Comercial",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -280,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst d = $json;\nconst stakeholders = (d.stakeholders && d.stakeholders.length) ? d.stakeholders : ['CFO','COO','CTO/CISO','Usuarios finales'];\n\nconst matriz = {\n  'CFO': {\n    preocupacion: 'ROI, TCO, coste marginal y payback',\n    mensaje: 'La propuesta convierte capacidad operativa en valor medible y controla el coste de escala.'\n  },\n  'COO': {\n    preocupacion: 'Fiabilidad, excepciones y continuidad operativa',\n    mensaje: 'El sistema automatiza casos estándar y escala los complejos, reduciendo cuellos de botella.'\n  },\n  'CTO/CISO': {\n    preocupacion: 'Seguridad, auditoría, gobernanza y residencia de datos',\n    mensaje: 'Arquitectura auditable, guardrails, trazabilidad y posibilidad de self-hosting.'\n  },\n  'Usuarios finales': {\n    preocupacion: 'Dificultad de uso y temor a reemplazo',\n    mensaje: 'La IA elimina tareas repetitivas y deja las decisiones sensibles en manos humanas.'\n  }\n};\n\nreturn [{\n  json: {\n    ...d,\n    roadmap: [\n      {\n        fase: 0,\n        nombre: 'Shadowing',\n        puede: 'Leer entradas y proponer respuestas',\n        prohibido: 'Ejecutar acciones o responder sin validación',\n        valida: 'Humano',\n        criterio_salida: 'Dataset real suficiente + precisión objetivo definida'\n      },\n      {\n        fase: 1,\n        nombre: 'Piloto Solo Lectura',\n        puede: 'Responder FAQs y consultar conocimiento corporativo',\n        prohibido: 'Modificar CRM, cancelar, crear o borrar registros',\n        valida: 'AI-as-a-Judge + muestreo humano',\n        criterio_salida: 'Precisión estable y tasa de fallback aceptable'\n      },\n      {\n        fase: 2,\n        nombre: 'Escritura Controlada',\n        puede: 'Crear acciones permitidas: agenda, contacto, actualización acotada',\n        prohibido: 'Acciones irreversibles sin aprobación',\n        valida: 'Human-in-the-Loop',\n        criterio_salida: 'Baja tasa de errores + trazabilidad completa'\n      },\n      {\n        fase: 3,\n        nombre: 'Autonomía Supervisada',\n        puede: 'Operar dentro de guardrails definidos',\n        prohibido: 'Salir del alcance autorizado',\n        valida: 'AI-as-a-Judge + observabilidad + HITL por excepción',\n        criterio_salida: 'Operación sostenida dentro de SLA'\n      }\n    ],\n    fallback: [\n      'Timeout del modelo → reintento controlado',\n      'Falta de contexto → no inventar y derivar',\n      'Riesgo alto → HITL',\n      'API externa caída → cola/reintento + alerta'\n    ],\n    stakeholder_matrix: stakeholders.map(s => ({\n      stakeholder: s,\n      ...(matriz[s] || {preocupacion:'Valor, riesgo y control', mensaje:'La solución se adapta a su objetivo de negocio con métricas y guardrails.'})\n    }))\n  }\n}];\n"
+      },
+      "id": "31d73a21-3dbf-4761-8c89-ba0e6b6ec66f",
+      "name": "Roadmap + Stakeholders",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Actuá como consultor senior de IA agéntica y redactor ejecutivo.\nDebés producir una propuesta técnico-comercial breve pero convincente para un comité no técnico.\n\nDATOS DEL DISCOVERY:\n{{ JSON.stringify($('Roadmap + Stakeholders').item.json, null, 2) }}\n\nFEEDBACK DE CORRECCIÓN:\n{{ $json.feedback_correccion || 'Sin feedback previo.' }}\n\nRedactá en español, sin jerga innecesaria y SIN mencionar nodos, embeddings o tool-calling.\n\nEstructura obligatoria:\n\n1. NARRATIVA EJECUTIVA\n- problema actual\n- promesa medible\n- solución explicada como sistema/analista virtual\n\n2. BUSINESS CASE\n- baseline\n- TCO\n- escenarios Conservador / Base / Optimista\n- ROI y payback\n- aclarar que horas liberadas = capacidad liberada, no ahorro directo de nómina salvo reducción real de headcount\n\n3. MODELO COMERCIAL\n- setup fee\n- retainer\n- success fee\n- KPI atribuible\n- ventana de conversión\n- qué incluye el retainer\n\n4. ROADMAP DE DESPLIEGUE\n- Fase 0, 1, 2 y 3\n- qué puede hacer\n- qué tiene prohibido\n- quién valida\n- criterio de salida\n\n5. MATRIZ DE STAKEHOLDERS\n- CFO\n- COO\n- CTO/CISO\n- usuarios finales\n- preocupación + frase de valor\n\n6. DEFENSA ANTE COMITÉ\nRespondé:\na) “Esto ya lo hace mi CRM”\nb) “¿Y si la IA alucina o borra datos?”\nc) “Es caro para el ahorro que genera”\n\n7. RECOMENDACIÓN FINAL\nRecomendación ejecutiva de no más de 5 líneas.\n\nNo inventes cifras. Usá únicamente las provistas/calculadas.\nSi un dato comercial falta, indicalo como “a definir contractualmente”.\n",
+        "options": {}
+      },
+      "id": "cee22330-6495-4e76-9551-1e67ef74cc69",
+      "name": "Brochure Writer IA",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        220,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "temperature": 0.25
+        }
+      },
+      "id": "ad429cee-2c8b-4af3-b457-b5089d37f173",
+      "name": "Modelo Writer - Groq",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        220,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nreturn [{\n  json: {\n    brochure: $json.text ?? $json.output ?? $json,\n    retry_count: Number($json.retry_count ?? 0),\n    chat_id: $('Capturar solicitud Telegram').item.json.chat_id,\n    business_case: $('Roadmap + Stakeholders').item.json\n  }\n}];\n"
+      },
+      "id": "5f724cfa-b5cf-42b1-a164-819d7205d22d",
+      "name": "Preparar evaluación",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Actuá como Auditor Ejecutivo de una propuesta de IA agéntica.\nEvaluá el BROCHURE únicamente contra el BUSINESS CASE provisto.\n\nBUSINESS CASE:\n{{ JSON.stringify($json.business_case, null, 2) }}\n\nBROCHURE:\n{{ $json.brochure }}\n\nEvaluá de 1 a 5:\n- claridad_ejecutiva\n- baseline_y_roi\n- tco_y_payback\n- roadmap_4_fases\n- pricing_hibrido\n- ventana_conversion\n- stakeholder_fit\n- riesgos_y_guardrails\n- defensa_comite\n\nReglas:\n5 = completo y consistente.\n4 = correcto con omisiones menores.\n3 = faltan uno o dos elementos relevantes.\n2 = faltan varios elementos críticos o hay inconsistencias.\n1 = contradice datos o inventa cifras.\n\nCalculá score_total_100 como promedio de las dimensiones * 20.\n\nVeredicto:\n- APROBADO: score_total_100 >= 85 y ninguna dimensión < 3.\n- CORREGIR: score_total_100 entre 65 y 84, o existe alguna dimensión = 3.\n- ESCALAR: score_total_100 < 65, existe dimensión <= 2, o hay cifras inventadas/contradictorias.\n\nDevolvé únicamente el objeto estructurado.",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "id": "2cf54fe4-d96a-44d1-8907-99e6d89d6345",
+      "name": "AI-as-a-Judge - Brochure",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        700,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "id": "e619720f-bd64-46f7-8a67-7832ecb23e39",
+      "name": "Modelo Judge - Groq",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        700,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\"type\": \"object\", \"properties\": {\"claridad_ejecutiva\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 5}, \"baseline_y_roi\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 5}, \"tco_y_payback\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 5}, \"roadmap_4_fases\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 5}, \"pricing_hibrido\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 5}, \"ventana_conversion\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 5}, \"stakeholder_fit\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 5}, \"riesgos_y_guardrails\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 5}, \"defensa_comite\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 5}, \"score_total_100\": {\"type\": \"number\", \"minimum\": 0, \"maximum\": 100}, \"estado_veredicto\": {\"type\": \"string\", \"enum\": [\"APROBADO\", \"CORREGIR\", \"ESCALAR\"]}, \"feedback\": {\"type\": \"string\"}}, \"required\": [\"score_total_100\", \"estado_veredicto\", \"feedback\"], \"additionalProperties\": false}"
+      },
+      "id": "e43a52e8-4e22-4f7c-9ef9-a2adeaf12b9b",
+      "name": "Structured Output - Judge",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        900,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 3,
+        "output": "={{ $json.output.estado_veredicto === 'APROBADO' ? 0 : ($json.output.estado_veredicto === 'CORREGIR' ? 1 : 2) }}"
+      },
+      "id": "965d7842-cc4a-42a8-8965-def196fdd90d",
+      "name": "Switch - Veredicto Ejecutivo",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        960,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst j = $('AI-as-a-Judge - Brochure').item.json.output ?? $('AI-as-a-Judge - Brochure').item.json;\nconst evalIn = $('Preparar evaluación').item.json;\nconst bc = $('Roadmap + Stakeholders').item.json;\nconst base = bc.escenarios.find(e => e.nombre === 'BASE') || {};\n\nconst texto = `✅ PROPUESTA APROBADA POR EL AI-as-a-JUDGE\n\nCliente: ${bc.cliente || 'No informado'}\nScore: ${j.score_total_100 ?? 'N/D'}/100\n\n📊 BUSINESS CASE BASE\n• Horas manuales/mes: ${bc.baseline?.horas_manual_mes ?? 'N/D'}\n• Capacidad liberada: USD ${base.capacidad_liberada_usd_mes ?? 'N/D'}/mes\n• TCO: USD ${base.tco_mensual_usd ?? 'N/D'}/mes\n• Beneficio neto: USD ${base.beneficio_neto_mensual_usd ?? 'N/D'}/mes\n• ROI mensual: ${base.roi_mensual_pct ?? 'N/D'}%\n• Payback: ${base.payback_meses ?? 'N/D'} meses\n\n💼 MODELO COMERCIAL\n• Setup: USD ${bc.modelo_comercial?.setup_fee_usd ?? 'N/D'}\n• Retainer sugerido: USD ${bc.modelo_comercial?.retainer_mensual_recomendado_usd ?? 'N/D'}/mes\n• Success fee KPI: ${bc.modelo_comercial?.success_fee_kpi ?? 'A definir'}\n• Ventana: ${bc.modelo_comercial?.ventana_conversion_dias ?? 'N/D'} días\n\n🧭 ROADMAP\n0 Shadow → 1 Solo lectura → 2 Escritura controlada + HITL → 3 Autonomía supervisada\n\n📌 RECOMENDACIÓN\nUsar despliegue incremental, baseline explícito, trazabilidad CRM y pricing híbrido.\n\n---\nBROCHURE EJECUTIVO\n\n${evalIn.brochure}`;\n\nreturn [{json:{chat_id: evalIn.chat_id, mensaje_final: texto}}];\n"
+      },
+      "id": "b92f37a1-a62f-4853-b894-8f876c940da4",
+      "name": "Preparar respuesta final Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1220,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.mensaje_final }}",
+        "additionalFields": {}
+      },
+      "id": "c66310fc-b045-479f-956f-4e952445cc5c",
+      "name": "Telegram - Enviar propuesta",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1480,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst j = $json.output ?? $json;\nconst prev = $('Preparar evaluación').item.json;\nconst nextRetry = Number(prev.retry_count || 0) + 1;\nreturn [{\n  json: {\n    feedback_correccion: j.feedback || 'Revisar faltantes detectados por el auditor.',\n    retry_count: nextRetry,\n    chat_id: prev.chat_id\n  }\n}];\n"
+      },
+      "id": "8141cdf7-8585-4774-8d64-9dac9fb5a383",
+      "name": "Preparar corrección",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1220,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2f04970b-d724-4383-9ee2-36bfef2a857f",
+              "leftValue": "={{ $json.retry_count }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1a5b194e-20e8-40b3-ba8d-4a8a622d5918",
+      "name": "¿Máximo 2 correcciones?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1460,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c4fada73-d0c7-43fe-8023-5162b67b594f",
+              "name": "chat_id",
+              "value": "={{ $('Capturar solicitud Telegram').item.json.chat_id }}",
+              "type": "number"
+            },
+            {
+              "id": "b25c19f9-a8ac-4434-84a4-248b9219465a",
+              "name": "score",
+              "value": "={{ $('AI-as-a-Judge - Brochure').item.json.output.score_total_100 }}",
+              "type": "number"
+            },
+            {
+              "id": "9ac7f8b5-ddd6-4086-99e9-64b5bbfb9d5a",
+              "name": "feedback",
+              "value": "={{ $('AI-as-a-Judge - Brochure').item.json.output.feedback }}",
+              "type": "string"
+            },
+            {
+              "id": "1941463d-7637-49ae-b103-0ae31e06e9d6",
+              "name": "brochure",
+              "value": "={{ $('Preparar evaluación').item.json.brochure }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true
+      },
+      "id": "5f78ed50-c9ef-4ae4-8c51-16b5da80eff1",
+      "name": "Preparar HITL",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1710,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendAndWait",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "=🚨 REVISIÓN HUMANA REQUERIDA\n\nEl brochure no alcanzó el umbral automático.\n\nScore: {{ $json.score }}/100\n\nFeedback:\n{{ $json.feedback }}\n\n¿Aprobás igualmente la propuesta para enviarla?",
+        "responseType": "approval",
+        "options": {},
+        "approvalOptions": {}
+      },
+      "id": "ffcf7d70-cf41-43dc-816e-5dc4187a7389",
+      "name": "Telegram HITL - Revisar propuesta",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1950,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Capturar solicitud Telegram').item.json.chat.id || $('Capturar solicitud Telegram').item.json.chat_id }}",
+        "text": "=✅ Revisión humana completada.\n\nLa propuesta quedó liberada para revisión/comercialización.\n\nBrochure:\n{{ $('Preparar evaluación').item.json.brochure }}",
+        "additionalFields": {}
+      },
+      "id": "e8674976-8bb7-4be3-807a-ff181cb73fd3",
+      "name": "Telegram - Cierre HITL",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2190,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Entrada por Telegram\nEnviar un único mensaje con datos del cliente.\n\nEjemplo:\nCliente: Inmobiliaria Delta\nIndustria: Real Estate\nProceso: calificación de leads de WhatsApp y agenda\nVolumen mensual: 1200\nMinutos por caso: 12\nCosto hora humano USD: 15\nSetup estimado USD: 3000\nCosto IA mensual USD: 400\nCosto infraestructura USD: 100\nHoras soporte/mes: 8\nCosto hora soporte USD: 30\nKPI success fee: cita calificada asistida por IA\nSuccess fee unitario USD: 8\nVentana conversión: 30 días\nStakeholders: CFO, COO, CTO/CISO\nHerramientas: WhatsApp, CRM, Google Calendar, Slack",
+        "height": 520,
+        "width": 430
+      },
+      "id": "863d3bf8-4895-493f-a533-21413cf5d31c",
+      "name": "NOTA - Formato Telegram",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1740,
+        -360
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Lógica de negocio\n1. Discovery libre → JSON estructurado\n2. Validación de faltantes\n3. ROI/TCO determinístico\n4. Sensibilidad: Conservador / Base / Optimista\n5. Pricing híbrido\n6. Roadmap por fases\n7. Storytelling por stakeholder\n8. Brochure ejecutivo\n9. AI-as-a-Judge\n10. APROBADO / CORREGIR / HITL\n11. Salida por Telegram",
+        "height": 360,
+        "width": 420
+      },
+      "id": "28bc5666-a134-467f-a973-2ef3e2d249a6",
+      "name": "NOTA - Arquitectura",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -180,
+        -520
+      ]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Capturar solicitud Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Capturar solicitud Telegram": {
+      "main": [
+        [
+          {
+            "node": "Discovery IA - Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Discovery - Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Discovery IA - Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output - Discovery": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Discovery IA - Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discovery IA - Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Validar Discovery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Discovery": {
+      "main": [
+        [
+          {
+            "node": "¿Discovery completo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Discovery completo?": {
+      "main": [
+        [
+          {
+            "node": "Calcular ROI TCO + Sensibilidad",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram - Pedir datos faltantes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular ROI TCO + Sensibilidad": {
+      "main": [
+        [
+          {
+            "node": "Diseñar Modelo Comercial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Diseñar Modelo Comercial": {
+      "main": [
+        [
+          {
+            "node": "Roadmap + Stakeholders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Roadmap + Stakeholders": {
+      "main": [
+        [
+          {
+            "node": "Brochure Writer IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Writer - Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Brochure Writer IA",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brochure Writer IA": {
+      "main": [
+        [
+          {
+            "node": "Preparar evaluación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar evaluación": {
+      "main": [
+        [
+          {
+            "node": "AI-as-a-Judge - Brochure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Judge - Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI-as-a-Judge - Brochure",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output - Judge": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI-as-a-Judge - Brochure",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI-as-a-Judge - Brochure": {
+      "main": [
+        [
+          {
+            "node": "Switch - Veredicto Ejecutivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Veredicto Ejecutivo": {
+      "main": [
+        [
+          {
+            "node": "Preparar respuesta final Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar corrección",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar HITL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar respuesta final Telegram": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Enviar propuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar corrección": {
+      "main": [
+        [
+          {
+            "node": "¿Máximo 2 correcciones?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Máximo 2 correcciones?": {
+      "main": [
+        [
+          {
+            "node": "Brochure Writer IA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar HITL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar HITL": {
+      "main": [
+        [
+          {
+            "node": "Telegram HITL - Revisar propuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram HITL - Revisar propuesta": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Cierre HITL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c15aba00-2bae-4ad6-b412-fd11a38d6b51",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
