@@ -1,0 +1,121 @@
+{
+  "name": "CLASE - Worker Sales",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "original_input"
+            },
+            {
+              "name": "intent"
+            },
+            {
+              "name": "confidence",
+              "type": "number"
+            },
+            {
+              "name": "risk"
+            }
+          ]
+        }
+      },
+      "id": "ff51d9f2-1455-409d-b0f0-7da36a78f8cd",
+      "name": "Entrada desde Manager",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Sos el especialista Sales de una mesa de ayuda empresarial.\n\nSolicitud original:\n{{ $json.original_input }}\n\nIntención detectada: {{ $json.intent }}\nConfianza: {{ $json.confidence }}\nRiesgo: {{ $json.risk }}\n\nAtendé únicamente consultas comerciales, planes y contratación. No inventes precios ni condiciones que no estén en la solicitud.\n\nNo inventes datos. Si la solicitud requiere una acción sensible, dinero, eliminación de información, cambios irreversibles o no tenés información suficiente, indicá que requiere revisión humana.\n\nRespondé SOLO como JSON válido, sin markdown:\n{\n  \"status\": \"success\",\n  \"worker\": \"SALES\",\n  \"respuesta\": \"respuesta breve y clara para el usuario\",\n  \"requires_human\": false\n}"
+      },
+      "id": "0ede46c3-656d-4238-9acf-a2f7f49629a7",
+      "name": "Especialista Sales - Groq",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        -240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "a0b90ea5-fd95-49d8-8afa-b651d2684ad8",
+      "name": "Modelo Groq",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.text ?? $json.output ?? $json.response ?? '';\nlet d;\ntry {\n  const clean = String(raw).replace(/^```json\\s*/i, '').replace(/```$/,'').trim();\n  d = JSON.parse(clean);\n} catch (e) {\n  d = {\n    status: 'error',\n    worker: 'SALES',\n    respuesta: String(raw || 'No se pudo interpretar la respuesta del especialista.'),\n    requires_human: true\n  };\n}\nreturn [{ json: {\n  status: d.status ?? 'success',\n  worker: d.worker ?? 'SALES',\n  respuesta: d.respuesta ?? '',\n  requires_human: Boolean(d.requires_human)\n} }];"
+      },
+      "id": "612b71b8-52d5-4d42-8c32-01b3de27718e",
+      "name": "Contrato de salida",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Entrada desde Manager": {
+      "main": [
+        [
+          {
+            "node": "Especialista Sales - Groq",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Especialista Sales - Groq": {
+      "main": [
+        [
+          {
+            "node": "Contrato de salida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Especialista Sales - Groq",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "versionId": "7ee2310c-7926-4991-8090-ea87c89f10bc",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
