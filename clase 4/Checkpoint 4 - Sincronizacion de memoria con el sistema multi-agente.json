@@ -1,0 +1,1023 @@
+{
+  "name": "Checkpoint 4 - Sincronizacion del Cerebro Agentico con Ecosistemas de Negocio",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "ed27e2b2-a203-4139-a950-246c186b9b95",
+      "name": "Ejecutar prueba",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1168,
+        96
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "253851d0-5f1e-4912-b530-5cae5bcaa378",
+              "name": "original_input",
+              "value": "={{ $json.message?.text ?? $json.original_input ?? 'Quiero contratar el plan empresarial.' }}",
+              "type": "string"
+            },
+            {
+              "id": "67a59454-f324-4bae-930a-d01ee4a31dde",
+              "name": "session_id",
+              "value": "={{ String($json.message?.chat?.id ?? $json.session_id ?? 'demo-session-001') }}",
+              "type": "string"
+            },
+            {
+              "id": "bb9ec6af-77d2-420c-8b37-36b20b65e281",
+              "name": "user_name",
+              "value": "={{ $json.message?.from?.first_name ?? $json.user_name ?? 'Usuario Demo' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "116885fe-213b-4148-a900-9af3bf9bdef4",
+      "name": "Input de prueba",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -960,
+        96
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Sos el Router de una mesa de ayuda empresarial.\nMensaje actual: {{ $json.original_input }}\n[INICIO DE CONTEXTO COMPARTIDO]\nUsuario: {{ $json.user_name }}\nResumen anterior: {{ $json.resumen_consolidado || 'Sin memoria previa' }}\nEstado del caso: {{ $json.estado_caso || 'NUEVO' }}\nDatos clave: {{ $json.datos_clave || 'Sin datos previos' }}\n[FIN DEL CONTEXTO COMPARTIDO]\nTu única tarea es clasificar. NO resuelvas el problema.\nIntent: BILLING, TECH_SUPPORT, SALES, UNKNOWN.\nRisk: LOW, MEDIUM, HIGH.\nConfidence: número entre 0 y 1.\nRespondé SOLO JSON válido:\n{\"intent\":\"BILLING\",\"confidence\":0.95,\"risk\":\"LOW\"}"
+      },
+      "id": "c88cd7d1-c5af-4ccf-8cb5-014b11c20a23",
+      "name": "Router IA - Groq",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        176,
+        96
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "id": "f2cb6ed2-a875-44d3-a756-84822efe8572",
+      "name": "Modelo Router Groq",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        176,
+        320
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "KXsr5pfj0wIlWLKb",
+          "name": "Groq account 2"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const source=$('Preparar contexto de memoria').first().json;\nconst raw=$json.text ?? $json.output ?? $json.response ?? '';\nlet d; try{d=JSON.parse(String(raw).replace(/^```json\\s*/i,'').replace(/```$/,'').trim());}catch(e){d={intent:'UNKNOWN',confidence:0,risk:'HIGH'};}\nconst allowed=['BILLING','TECH_SUPPORT','SALES','UNKNOWN'];\nreturn [{json:{...source,intent:allowed.includes(d.intent)?d.intent:'UNKNOWN',confidence:Math.max(0,Math.min(1,Number(d.confidence??0))),risk:['LOW','MEDIUM','HIGH'].includes(d.risk)?d.risk:'HIGH'}}];"
+      },
+      "id": "c626b65f-46aa-4f65-b883-f11d503aadcf",
+      "name": "Normalizar contrato Router",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        96
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ecd9232c-ce3c-48da-8e26-0e9e9fed5d48",
+              "leftValue": "={{ $json.risk }}",
+              "rightValue": "HIGH",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "039f1971-61b5-4977-9125-3957024653f4",
+              "leftValue": "={{ $json.confidence }}",
+              "rightValue": 0.5,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "8bc92c54-1f44-4c52-9ccb-8dc1331205e5",
+      "name": "¿Requiere HITL?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        96
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "fe1b0825-233f-4ee2-9276-bac40c6def70",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "BILLING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "BILLING"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "26157776-e2b2-42c8-887a-5e9b481507e1",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "TECH_SUPPORT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "TECH_SUPPORT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7ac8ece6-501f-4d2f-9e10-aa456bd1b464",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "SALES",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "SALES"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "c7d0d5fa-3c3e-473d-a73a-8345e7acb9b0",
+      "name": "Switch por intención",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        912,
+        192
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "PIEyxGOQGdmoPLyh",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/PIEyxGOQGdmoPLyh",
+          "cachedResultName": "CLASE - Worker Billing"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "original_input",
+              "displayName": "original_input",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "confidence",
+              "displayName": "confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "risk",
+              "displayName": "risk",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "717325cd-b943-46a8-9e48-407e60cce0fc",
+      "name": "Ejecutar Worker Billing",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        64
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "ec6a04aa-fd64-41ae-9941-c926a02dd3f5",
+      "name": "Ejecutar Worker Tech",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        192
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "b00bbe16-3c53-4528-b4c3-9d6955f7ab7a",
+      "name": "Ejecutar Worker Sales",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        336
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "26679462-7dbc-44bf-a344-561ed018f597",
+              "name": "status",
+              "value": "needs_human",
+              "type": "string"
+            },
+            {
+              "id": "6de45167-a3b4-4ecd-9b72-ff5ce1da209c",
+              "name": "worker",
+              "value": "HITL",
+              "type": "string"
+            },
+            {
+              "id": "1dc46813-ac25-4821-8d6c-0dea3c3c2ff7",
+              "name": "respuesta",
+              "value": "La solicitud necesita revisión humana por riesgo alto, baja confianza o intención no reconocida.",
+              "type": "string"
+            },
+            {
+              "id": "4c49ddee-1f27-4765-b82b-03fd2a3a8d6a",
+              "name": "requires_human",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "049a7655-647f-4f16-8902-69db6f50899a",
+      "name": "Preparar HITL / Unknown",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        512
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => ({json:{\n  timestamp:new Date().toISOString(),\n  status:item.json.status ?? 'success',\n  worker:item.json.worker ?? 'N/D',\n  respuesta:item.json.respuesta ?? '',\n  requires_human:Boolean(item.json.requires_human)\n}}));"
+      },
+      "id": "06b8af05-8363-4d42-ac9c-f5c9163059c9",
+      "name": "Preparar respuesta final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        224
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => ({json:{\n  ...item.json,\n  log:`${item.json.timestamp} | worker=${item.json.worker} | status=${item.json.status} | HITL=${item.json.requires_human}`\n}}));"
+      },
+      "id": "f4d7b14b-d7ac-4159-88ea-de24e1b82fd6",
+      "name": "Log de ejecución",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1728,
+        224
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Memoria",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "session_id",
+              "lookupValue": "={{ $('Input de prueba').first().json.session_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bae277a0-2b82-4101-826c-2cee167b1ee4",
+      "name": "Buscar memoria por Session_ID",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -704,
+        96
+      ],
+      "alwaysOutputData": true,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Input de prueba').first().json;\nconst rows = $input.all().map(i => i.json).filter(r => r && r.session_id);\nconst m = rows[0] ?? {};\nreturn [{json:{...input, memoria_existe:Boolean(m.session_id), resumen_consolidado:m.resumen_consolidado ?? 'Sin memoria previa', estado_caso:m.estado_caso ?? 'NUEVO', datos_clave:m.datos_clave ?? 'Sin datos previos', contador_mensajes:Number(m.contador_mensajes ?? 0)}}];"
+      },
+      "id": "f24322e2-e9fa-4593-ab67-3d5f7acdd909",
+      "name": "Preparar contexto de memoria",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        96
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d7e75f98-2e57-4442-9464-9d55c1e145ae",
+              "leftValue": "={{ $json.memoria_existe }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cd3f0659-95f7-4ea4-be83-d82e0d932430",
+      "name": "¿Existe memoria?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -224,
+        96
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all();"
+      },
+      "id": "f4f3c382-41c5-41c4-b83d-f0af09a0158e",
+      "name": "Contexto - Usuario recurrente",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all();"
+      },
+      "id": "759ebf7a-5ede-4d10-bcfe-19653e053f2c",
+      "name": "Contexto - Usuario nuevo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        192
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Normalizar contrato Router').first().json;\nreturn $input.all().map(item => ({json:{...base,...item.json,contador_mensajes:Number(base.contador_mensajes ?? 0)+1,requiere_resumen:Number(base.contador_mensajes ?? 0)+1>=5}}));"
+      },
+      "id": "16cd2b1e-c2b4-4f85-879e-48d1a36e45dd",
+      "name": "Actualizar contador de mensajes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        224
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2a2e4103-6e19-419b-8718-8a817fae9e6d",
+              "leftValue": "={{ $json.requiere_resumen }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cc6ae540-dd77-4f8a-a4d1-97aa7d4aa9fc",
+      "name": "¿5 o más mensajes?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1872,
+        224
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Sos el componente de consolidación de memoria. NO respondas al usuario.\nMEMORIA PREVIA: {{ $json.resumen_consolidado || 'Sin memoria previa' }}\nMENSAJE ACTUAL: {{ $json.original_input }}\nRESPUESTA: {{ $json.respuesta }}\nGuardá solo información útil para una conversación futura. No guardes saludos, logs, payloads, contraseñas ni tokens.\nRespondé SOLO JSON válido:\n{\"asunto_principal\":\"\",\"puntos_clave\":[],\"accion_requerida\":\"\",\"estado_caso\":\"\"}"
+      },
+      "id": "0d41d60d-9472-4fb4-b40d-7b33a2ab8360",
+      "name": "Summarizer - Groq",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        2064,
+        112
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.8-27b",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "id": "0bada7d7-a401-49f3-b7ba-8140ccb8f935",
+      "name": "Modelo Summarizer Groq",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        2064,
+        336
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "KXsr5pfj0wIlWLKb",
+          "name": "Groq account 2"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const base=$('Actualizar contador de mensajes').first().json;\nconst raw=$json.text ?? $json.output ?? $json.response ?? '';\nlet d; try{d=JSON.parse(String(raw).replace(/^```json\\s*/i,'').replace(/```$/,'').trim());}catch(e){d={asunto_principal:base.intent,puntos_clave:[base.original_input],accion_requerida:'',estado_caso:base.estado_caso};}\nreturn [{json:{...base,resumen_consolidado:[d.asunto_principal,...(Array.isArray(d.puntos_clave)?d.puntos_clave:[]),d.accion_requerida].filter(Boolean).join(' | '),datos_clave:JSON.stringify({puntos_clave:d.puntos_clave??[],accion_requerida:d.accion_requerida??''}),estado_caso:d.estado_caso||base.estado_caso||'EN_PROCESO',fecha_actualizacion:new Date().toISOString()}}];"
+      },
+      "id": "3726faaa-2512-4e34-aa67-f1d76f4d6cf2",
+      "name": "Parsear resumen de memoria",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2304,
+        112
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(i=>({json:{...i.json,fecha_actualizacion:new Date().toISOString()}}));"
+      },
+      "id": "fa3343b5-7546-493d-a52c-06811fb54588",
+      "name": "Mantener memoria actual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2064,
+        240
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Memoria",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session_id": "={{ $json.session_id }}",
+            "user_name": "={{ $json.user_name }}",
+            "fecha_actualizacion": "={{ $json.fecha_actualizacion }}",
+            "resumen_consolidado": "={{ $json.resumen_consolidado }}",
+            "estado_caso": "={{ $json.estado_caso }}",
+            "datos_clave": "={{ $json.datos_clave }}",
+            "contador_mensajes": "={{ $json.contador_mensajes }}"
+          },
+          "matchingColumns": [
+            "session_id"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "3e6e11ba-add9-4dd6-8b59-3fa5c127fcef",
+      "name": "Guardar memoria en Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        2544,
+        192
+      ],
+      "disabled": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Ejecutar prueba": {
+      "main": [
+        [
+          {
+            "node": "Input de prueba",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input de prueba": {
+      "main": [
+        [
+          {
+            "node": "Buscar memoria por Session_ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router IA - Groq": {
+      "main": [
+        [
+          {
+            "node": "Normalizar contrato Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Router Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Router IA - Groq",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar contrato Router": {
+      "main": [
+        [
+          {
+            "node": "¿Requiere HITL?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Requiere HITL?": {
+      "main": [
+        [
+          {
+            "node": "Preparar HITL / Unknown",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch por intención",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch por intención": {
+      "main": [
+        [
+          {
+            "node": "Ejecutar Worker Billing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ejecutar Worker Tech",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ejecutar Worker Sales",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar HITL / Unknown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar Worker Billing": {
+      "main": [
+        [
+          {
+            "node": "Preparar respuesta final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar Worker Tech": {
+      "main": [
+        [
+          {
+            "node": "Preparar respuesta final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar Worker Sales": {
+      "main": [
+        [
+          {
+            "node": "Preparar respuesta final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar HITL / Unknown": {
+      "main": [
+        [
+          {
+            "node": "Preparar respuesta final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar respuesta final": {
+      "main": [
+        [
+          {
+            "node": "Actualizar contador de mensajes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar memoria por Session_ID": {
+      "main": [
+        [
+          {
+            "node": "Preparar contexto de memoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar contexto de memoria": {
+      "main": [
+        [
+          {
+            "node": "¿Existe memoria?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Existe memoria?": {
+      "main": [
+        [
+          {
+            "node": "Contexto - Usuario recurrente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Contexto - Usuario nuevo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contexto - Usuario recurrente": {
+      "main": [
+        [
+          {
+            "node": "Router IA - Groq",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contexto - Usuario nuevo": {
+      "main": [
+        [
+          {
+            "node": "Router IA - Groq",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar contador de mensajes": {
+      "main": [
+        [
+          {
+            "node": "¿5 o más mensajes?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿5 o más mensajes?": {
+      "main": [
+        [
+          {
+            "node": "Summarizer - Groq",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mantener memoria actual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Summarizer Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarizer - Groq",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarizer - Groq": {
+      "main": [
+        [
+          {
+            "node": "Parsear resumen de memoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear resumen de memoria": {
+      "main": [
+        [
+          {
+            "node": "Guardar memoria en Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mantener memoria actual": {
+      "main": [
+        [
+          {
+            "node": "Guardar memoria en Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar memoria en Sheets": {
+      "main": [
+        [
+          {
+            "node": "Log de ejecución",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8dcf848c-cdd6-4fad-8d14-6ac3a7bcce72",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a8424d678d0a353446eec61b677732c76989ea1943a00cd3a5c639891451c875"
+  },
+  "nodeGroups": [],
+  "id": "SgEXl3ovMGvY1VoD",
+  "tags": [
+    {
+      "updatedAt": "2026-09-17T23:25:51.102Z",
+      "createdAt": "2026-09-17T23:25:51.102Z",
+      "id": "76ma8Ra6Hsi5RfpW",
+      "name": "checkpoint4"
+    },
+    {
+      "updatedAt": "2026-09-17T23:25:51.078Z",
+      "createdAt": "2026-09-17T23:25:51.078Z",
+      "id": "CF8owDD23ItsORjj",
+      "name": "integraciones-avanzadas"
+    }
+  ]
+}

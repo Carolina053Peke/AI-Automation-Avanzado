@@ -1,0 +1,590 @@
+{
+  "name": "CRM",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Sos el agente de triaje de la casilla de soporte.\nAnalizá únicamente estos datos limpios:\nFrom: {{ $json.From }}\nSubject: {{ $json.Subject }}\nBodyText: {{ $json.BodyText }}\n\nClasificá con taxonomía cerrada:\nBILLING, TECH_SUPPORT, SALES, UNKNOWN.\n\nRespondé SOLO JSON válido:\n{\"intent\":\"TECH_SUPPORT\",\"confidence\":0.95,\"risk\":\"LOW\",\"draft_body\":\"Borrador breve y profesional para responder al cliente.\"}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1824,
+        656
+      ],
+      "id": "1156901e-1193-4a61-9af8-df6adab89cca",
+      "name": "AI Triage Email - Groq"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BNMKG9UMV",
+          "mode": "list",
+          "cachedResultName": "todo-ia-automation-coder"
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {}
+      },
+      "id": "d209ccd5-a1c6-498d-85b1-2a673272b2ee",
+      "name": "Slack - Alertar Operaciones",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        4016,
+        656
+      ],
+      "webhookId": "37c3e129-539e-440d-a200-c0c13065d1b4",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "w6tFtJboIgkKkTlq",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6cc61e46-c7b1-4d09-87f5-5785a4e34646",
+              "name": "text",
+              "value": "={{ '📩 Nuevo caso procesado\\nCliente: ' + $('4 - Set - Limpiar payload Email').first().json.From + '\\nAsunto: ' + $('4 - Set - Limpiar payload Email').first().json.Subject + '\\nIntent: ' + $('Normalizar Triage Email1').first().json.intent + '\\nEstado: borrador creado para revisión humana' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e98e8281-454f-43cf-86d3-e2dc961e1bc7",
+      "name": "Set - Payload mínimo Slack",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3760,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "021cba71-1dda-4f8c-93bb-a825aceb4954",
+              "name": "to",
+              "value": "={{ $('4 - Set - Limpiar payload Email').first().json.From }}",
+              "type": "string"
+            },
+            {
+              "id": "b5eb1255-211a-49d9-a99c-6fa23ffa882b",
+              "name": "subject",
+              "value": "={{ 'Re: ' + $('4 - Set - Limpiar payload Email').first().json.Subject }}",
+              "type": "string"
+            },
+            {
+              "id": "80c8d272-3ebb-4e1f-b7ab-dc7eeaa65f5f",
+              "name": "body",
+              "value": "={{ $('Normalizar Triage Email1').first().json.draft_body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a8d2546b-048f-4b98-8c60-6944711b9036",
+      "name": "Set - Payload Draft",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3264,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "email": "carolinalemes.onig@gmail.com",
+        "additionalFields": {},
+        "options": {}
+      },
+      "id": "975cf775-cb3f-4f83-aaae-7bbf95cb60a0",
+      "name": "HubSpot - Create contacto",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        3008,
+        768
+      ],
+      "credentials": {
+        "hubspotOAuth2Api": {
+          "id": "tC02SCZ8GeZIiwhV",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "update"
+      },
+      "id": "1ea65f19-4386-47ea-9921-e343e030f179",
+      "name": "HubSpot - Update contacto",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        3008,
+        560
+      ],
+      "credentials": {
+        "hubspotOAuth2Api": {
+          "id": "tC02SCZ8GeZIiwhV",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "id": "ee6ae02a-f63e-49e8-9303-13b034a35760",
+      "name": "Modelo Email Groq",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        880
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "KXsr5pfj0wIlWLKb",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "45f39423-036f-4645-bbc8-03b6a4564db6",
+      "name": "Stop - Auto reply ignorado",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b416e06d-4df7-41fe-a8ed-931551007508",
+              "leftValue": "={{ Boolean($json.id) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "651454da-f5af-45c6-8631-fb9cefced28c",
+      "name": "¿Contacto existe?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2752,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const src=$('4 - Set - Limpiar payload Email').first().json;\nconst raw=$json.text ?? $json.output ?? $json.response ?? '';\nlet d; try{d=JSON.parse(String(raw).replace(/^```json\\s*/i,'').replace(/```$/,'').trim());}\ncatch(e){d={intent:'UNKNOWN',confidence:0,risk:'HIGH',draft_body:'Requiere revisión humana.'};}\nreturn [{json:{...src,...d}}];"
+      },
+      "id": "1dde4a59-e539-44c8-b318-ac8c0a5dd1c8",
+      "name": "Normalizar Triage Email1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2256,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "id": "de0f2df4-8c35-4dec-a677-2fd8730e6760",
+      "name": "Gmail Trigger - Soporte1",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        768,
+        560
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "VxBE8Z89DiLjZAM2",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c77b59c1-b964-415d-986f-8f7ff8bf1027",
+              "leftValue": "={{ $json.subject ?? '' }}",
+              "rightValue": "Auto-reply",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "6ea5be44-a70b-493d-8d61-c149b845586f",
+              "leftValue": "={{ $json.subject ?? '' }}",
+              "rightValue": "Out of office",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "93569b0d-3891-42a9-a927-18cdf8973125",
+              "leftValue": "={{ $json.subject ?? '' }}",
+              "rightValue": "Undeliverable",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "a98d6d5e-cc92-4e40-a24b-d8975843315c",
+              "leftValue": "={{ $json.from?.value?.[0]?.address ?? $json.from ?? '' }}",
+              "rightValue": "no-reply@",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "4e8a6a45-4015-4a33-a43c-934e6ed71794",
+      "name": "1 - IF - ¿Es auto-reply?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1088,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "search",
+        "filterGroupsUi": {
+          "filterGroupsValues": [
+            {
+              "filtersUi": {
+                "filterValues": [
+                  {
+                    "propertyName": "=email",
+                    "value": "={{ $json.From }}"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "10ba7e4e-2966-4065-96b4-da1339bc7756",
+      "name": "2 - HubSpot - Look up contacto",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        2512,
+        656
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "hubspotOAuth2Api": {
+          "id": "tC02SCZ8GeZIiwhV",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "384cdbf1-51f8-4c3b-9a0c-6f5eea9a64c8",
+              "name": "From",
+              "value": "={{ $json.from?.value?.[0]?.address ?? $json.from ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "fa89918d-50ad-4323-a213-45bdaf265831",
+              "name": "Subject",
+              "value": "={{ $json.subject ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "93cfbcb3-1db9-4fb5-a790-3b76c3c63220",
+              "name": "BodyText",
+              "value": "={{ $json.textPlain ?? $json.text ?? $json.snippet ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "d56561b3-3154-4c47-ad9d-658379d9bc6e",
+              "name": "session_id",
+              "value": "={{ String($json.from?.value?.[0]?.address ?? $json.from ?? 'email-session') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4dc3b0e5-f7e8-4ef5-bfb8-13ff865ed80a",
+      "name": "4 - Set - Limpiar payload Email",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1344,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "id": "da1678ca-e217-4e28-92fc-6219fc6e1e41",
+      "name": "3 - Gmail - Create Draft HITL",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3504,
+        656
+      ],
+      "webhookId": "59556466-c1e4-4a19-9868-7dd192e0f4e7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "VxBE8Z89DiLjZAM2",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Triage Email - Groq": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Triage Email1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Payload mínimo Slack": {
+      "main": [
+        [
+          {
+            "node": "Slack - Alertar Operaciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Payload Draft": {
+      "main": [
+        [
+          {
+            "node": "3 - Gmail - Create Draft HITL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot - Create contacto": {
+      "main": [
+        [
+          {
+            "node": "Set - Payload Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot - Update contacto": {
+      "main": [
+        [
+          {
+            "node": "Set - Payload Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Email Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Triage Email - Groq",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Contacto existe?1": {
+      "main": [
+        [
+          {
+            "node": "HubSpot - Update contacto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HubSpot - Create contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Triage Email1": {
+      "main": [
+        [
+          {
+            "node": "2 - HubSpot - Look up contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger - Soporte1": {
+      "main": [
+        [
+          {
+            "node": "1 - IF - ¿Es auto-reply?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1 - IF - ¿Es auto-reply?": {
+      "main": [
+        [
+          {
+            "node": "Stop - Auto reply ignorado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "4 - Set - Limpiar payload Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2 - HubSpot - Look up contacto": {
+      "main": [
+        [
+          {
+            "node": "¿Contacto existe?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4 - Set - Limpiar payload Email": {
+      "main": [
+        [
+          {
+            "node": "AI Triage Email - Groq",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3 - Gmail - Create Draft HITL": {
+      "main": [
+        [
+          {
+            "node": "Set - Payload mínimo Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4ab133b0-9bb5-43c7-9969-bd21e37a2f76",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a8424d678d0a353446eec61b677732c76989ea1943a00cd3a5c639891451c875"
+  },
+  "nodeGroups": [],
+  "id": "ryafC2oLoLLWIgmf",
+  "tags": []
+}

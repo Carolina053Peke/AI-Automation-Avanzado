@@ -1,0 +1,1171 @@
+{
+  "name": "CLASE 4 - Workflow Final CRM + Memoria",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "id": "64792073-e2ac-41b5-8783-3e87f9c72005",
+      "name": "Gmail Trigger - Soporte",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -944,
+        992
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "VxBE8Z89DiLjZAM2",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c77b59c1-b964-415d-986f-8f7ff8bf1027",
+              "leftValue": "={{ $json.subject ?? '' }}",
+              "rightValue": "Auto-reply",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "6ea5be44-a70b-493d-8d61-c149b845586f",
+              "leftValue": "={{ $json.subject ?? '' }}",
+              "rightValue": "Out of office",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "93569b0d-3891-42a9-a927-18cdf8973125",
+              "leftValue": "={{ $json.subject ?? '' }}",
+              "rightValue": "Undeliverable",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "a98d6d5e-cc92-4e40-a24b-d8975843315c",
+              "leftValue": "={{ $json.from?.value?.[0]?.address ?? $json.from ?? '' }}",
+              "rightValue": "no-reply@",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "5eb67032-080c-4305-884f-adab645d9b91",
+      "name": "① IF - ¿Es auto-reply?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -624,
+        992
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "fa12157b-4369-4a04-8a84-00e6ecc8b42b",
+      "name": "Stop - Auto reply ignorado",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "384cdbf1-51f8-4c3b-9a0c-6f5eea9a64c8",
+              "name": "From",
+              "value": "={{ $json.from?.value?.[0]?.address ?? $json.from ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "fa89918d-50ad-4323-a213-45bdaf265831",
+              "name": "Subject",
+              "value": "={{ $json.subject ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "93cfbcb3-1db9-4fb5-a790-3b76c3c63220",
+              "name": "BodyText",
+              "value": "={{ $json.textPlain ?? $json.text ?? $json.snippet ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "d56561b3-3154-4c47-ad9d-658379d9bc6e",
+              "name": "session_id",
+              "value": "={{ String($json.from?.value?.[0]?.address ?? $json.from ?? 'email-session') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "878d42d2-dc27-4c21-a491-db00f8b38ff2",
+      "name": "④ Set - Limpiar payload Email",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -368,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "id": "7516b068-29b3-41ec-8ad3-f70c7c9e196b",
+      "name": "Modelo Email Groq",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        1312
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "KXsr5pfj0wIlWLKb",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const src=$('④ Set - Limpiar payload Email').first().json;\nconst raw=$json.text ?? $json.output ?? $json.response ?? '';\nlet d; try{d=JSON.parse(String(raw).replace(/^```json\\s*/i,'').replace(/```$/,'').trim());}\ncatch(e){d={intent:'UNKNOWN',confidence:0,risk:'HIGH',draft_body:'Requiere revisión humana.'};}\nreturn [{json:{...src,...d}}];"
+      },
+      "id": "7e697a99-2f78-437d-bed3-5360f803ffcc",
+      "name": "Normalizar Triage Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "search",
+        "filterGroupsUi": {
+          "filterGroupsValues": [
+            {
+              "filtersUi": {
+                "filterValues": [
+                  {
+                    "propertyName": "email",
+                    "value": "={{ $json.From }}"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "5606f317-dce4-4906-8028-6c8011b3406a",
+      "name": "② HubSpot - Look up contacto",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        1088
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "hubspotOAuth2Api": {
+          "id": "tC02SCZ8GeZIiwhV",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b416e06d-4df7-41fe-a8ed-931551007508",
+              "leftValue": "={{ Boolean($json.id) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "08ec65a5-a0a7-410a-97d3-9a7b1ff844ce",
+      "name": "¿Contacto existe?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "createOrUpdate",
+        "email": "={{ $('Normalizar Triage Email').first().json.From }}",
+        "additionalFields": {},
+        "options": {}
+      },
+      "id": "fdc409a2-a251-4731-ae74-628ae8ef8737",
+      "name": "HubSpot - Update contacto",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        1296,
+        992
+      ],
+      "credentials": {
+        "hubspotOAuth2Api": {
+          "id": "tC02SCZ8GeZIiwhV",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "email": "={{ $('Normalizar Triage Email').first().json.From }}",
+        "additionalFields": {},
+        "options": {}
+      },
+      "id": "3630aab4-3c27-4779-996c-b18b27c0a965",
+      "name": "HubSpot - Create contacto",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        1296,
+        1200
+      ],
+      "credentials": {
+        "hubspotOAuth2Api": {
+          "id": "tC02SCZ8GeZIiwhV",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "021cba71-1dda-4f8c-93bb-a825aceb4954",
+              "name": "to",
+              "value": "={{ $('④ Set - Limpiar payload Email').first().json.From }}",
+              "type": "string"
+            },
+            {
+              "id": "b5eb1255-211a-49d9-a99c-6fa23ffa882b",
+              "name": "subject",
+              "value": "={{ 'Re: ' + $('④ Set - Limpiar payload Email').first().json.Subject }}",
+              "type": "string"
+            },
+            {
+              "id": "80c8d272-3ebb-4e1f-b7ab-dc7eeaa65f5f",
+              "name": "body",
+              "value": "={{ $('Normalizar Triage Email').first().json.draft_body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "06af2ee5-35c7-441f-af0c-993f78ec3d45",
+      "name": "Set - Payload Draft",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4190,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "id": "9074cda9-216d-4e1f-b96c-f7055397d64c",
+      "name": "③ Gmail - Create Draft HITL",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        4430,
+        1088
+      ],
+      "webhookId": "59556466-c1e4-4a19-9868-7dd192e0f4e7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "VxBE8Z89DiLjZAM2",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6cc61e46-c7b1-4d09-87f5-5785a4e34646",
+              "name": "text",
+              "value": "={{ '📩 Nuevo caso procesado\\nCliente: ' + $('④ Set - Limpiar payload Email').first().json.From + '\\nAsunto: ' + $('④ Set - Limpiar payload Email').first().json.Subject + '\\nIntent: ' + $('Normalizar Triage Email').first().json.intent + '\\nEstado: borrador creado para revisión humana' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "63bdc2e0-7ded-43e5-b74c-1959a8b518b0",
+      "name": "Set - Payload mínimo Slack",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4670,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BNMKG9UMV",
+          "mode": "list",
+          "cachedResultName": "todo-ia-automation-coder"
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {}
+      },
+      "id": "d5160a30-e5e5-459e-88d6-236d9a94f364",
+      "name": "Slack - Alertar Operaciones",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        4910,
+        1088
+      ],
+      "webhookId": "37c3e129-539e-440d-a200-c0c13065d1b4",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "w6tFtJboIgkKkTlq",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Sos el agente de triaje de la casilla de soporte.\nAnalizá únicamente estos datos limpios:\nFrom: {{ $json.From }}\nSubject: {{ $json.Subject }}\nBodyText: {{ $json.BodyText }}\n\nClasificá con taxonomía cerrada:\nBILLING, TECH_SUPPORT, SALES, UNKNOWN.\n\nRespondé SOLO JSON válido:\n{\"intent\":\"TECH_SUPPORT\",\"confidence\":0.95,\"risk\":\"LOW\",\"draft_body\":\"Borrador breve y profesional para responder al cliente.\"}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        112,
+        1088
+      ],
+      "id": "cdbd8dc5-9105-45de-ae5e-ab523095acb0",
+      "name": "AI Triage Email - Groq"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Memoria",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "session_id",
+              "lookupValue": "={{ $('④ Set - Limpiar payload Email').first().json.session_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5b3ec88e-a987-424a-83f8-3a952aa3d113",
+      "name": "Buscar memoria por Session_ID",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1550,
+        1088
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Normalizar Triage Email').first().json;\nconst rows = $input.all().map(i => i.json).filter(r => r && r.session_id);\nconst m = rows[0] ?? {};\nreturn [{json:{...input,\n  memoria_existe:Boolean(m.session_id),\n  resumen_consolidado:m.resumen_consolidado ?? 'Sin memoria previa',\n  estado_caso:m.estado_caso ?? 'NUEVO',\n  datos_clave:m.datos_clave ?? 'Sin datos previos',\n  contador_mensajes:Number(m.contador_mensajes ?? 0)\n}}];"
+      },
+      "id": "64636428-d19b-4c75-b222-8a40862c8884",
+      "name": "Preparar contexto de memoria",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1790,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "BILLING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "BILLING"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "TECH_SUPPORT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "TECH_SUPPORT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "SALES",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "SALES"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "bfe372e3-e951-4f28-add2-bc69fc75fe11",
+      "name": "Switch por intención",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2030,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(i=>({json:{...i.json,worker:'BILLING',status:'success',requires_human:i.json.risk==='HIGH',respuesta:i.json.draft_body}}));"
+      },
+      "id": "f231ea65-54b2-46a7-88ca-1d0970e88dd8",
+      "name": "Worker Billing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2270,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(i=>({json:{...i.json,worker:'TECH_SUPPORT',status:'success',requires_human:i.json.risk==='HIGH',respuesta:i.json.draft_body}}));"
+      },
+      "id": "8cfa8ed4-beb5-4e07-97b0-a5f05ec99750",
+      "name": "Worker Tech",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2270,
+        1060
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(i=>({json:{...i.json,worker:'SALES',status:'success',requires_human:false,respuesta:i.json.draft_body}}));"
+      },
+      "id": "8b431498-19b3-4262-9d59-7ee7a3e7cf72",
+      "name": "Worker Sales",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2270,
+        1160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(i=>({json:{...i.json,worker:'HITL',status:'needs_human',requires_human:true,respuesta:i.json.draft_body || 'Requiere revisión humana.'}}));"
+      },
+      "id": "b52d99af-9ac9-434f-ab3e-67950ada1ee2",
+      "name": "HITL - Unknown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2270,
+        1260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(i=>({json:{...i.json,\ncontador_mensajes:Number(i.json.contador_mensajes ?? 0)+1,\nrequiere_resumen:Number(i.json.contador_mensajes ?? 0)+1>5,\nfecha_actualizacion:new Date().toISOString()\n}}));"
+      },
+      "id": "b47c291a-9eb4-41d7-8330-bf247d53a66e",
+      "name": "Actualizar contador",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2510,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.requiere_resumen }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "db39181d-f141-4068-8276-2ac782adc4dc",
+      "name": "¿Superó 5 mensajes?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2750,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Sos el componente de consolidación de memoria. NO respondas al usuario.\\nMEMORIA PREVIA: {{ $json.resumen_consolidado || 'Sin memoria previa' }}\\nMENSAJE ACTUAL: {{ $json.BodyText }}\\nRESPUESTA: {{ $json.respuesta }}\\nGuardá solo datos útiles para futuras interacciones.\\nRespondé SOLO JSON válido:\\n{\\\"asunto_principal\\\":\\\"\\\",\\\"puntos_clave\\\":[],\\\"accion_requerida\\\":\\\"\\\",\\\"estado_caso\\\":\\\"\\\"}"
+      },
+      "id": "2aeca46a-acd6-437f-a7b4-9c205d59e79b",
+      "name": "Summarizer - Groq",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        2990,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "id": "80785d37-5a0e-4017-ac02-3003f8111b2c",
+      "name": "Modelo Summarizer Groq",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        2990,
+        1280
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "KXsr5pfj0wIlWLKb",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const base=$('Actualizar contador').first().json;\nconst raw=$json.text ?? $json.output ?? $json.response ?? '';\nlet x; try{x=JSON.parse(String(raw).replace(/^```json\\s*/i,'').replace(/```$/,'').trim());}\ncatch(e){x={asunto_principal:base.intent,puntos_clave:[base.BodyText],accion_requerida:'',estado_caso:base.estado_caso};}\nreturn [{json:{...base,\nresumen_consolidado:[x.asunto_principal,...(x.puntos_clave||[]),x.accion_requerida].filter(Boolean).join(' | '),\ndatos_clave:JSON.stringify({puntos_clave:x.puntos_clave||[],accion_requerida:x.accion_requerida||''}),\nestado_caso:x.estado_caso||base.estado_caso||'EN_PROCESO',\ncontador_mensajes:0,fecha_actualizacion:new Date().toISOString()}}];"
+      },
+      "id": "96aae0e4-503f-4686-856a-f2ed78e69a56",
+      "name": "Parsear resumen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3230,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all();"
+      },
+      "id": "6b81d0c2-706c-4d80-872d-48ba518e70b2",
+      "name": "Mantener memoria actual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2990,
+        1160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Memoria",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session_id": "={{ $json.session_id }}",
+            "user_name": "={{ $json.From }}",
+            "fecha_actualizacion": "={{ $json.fecha_actualizacion }}",
+            "resumen_consolidado": "={{ $json.resumen_consolidado }}",
+            "estado_caso": "={{ $json.estado_caso }}",
+            "datos_clave": "={{ $json.datos_clave }}",
+            "contador_mensajes": "={{ $json.contador_mensajes }}"
+          },
+          "matchingColumns": [
+            "session_id"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "522a2659-8e39-499a-a089-8997e28f0b54",
+      "name": "Guardar memoria en Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        3470,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(i=>({json:{...i.json,timestamp:new Date().toISOString(),\noriginal_input:i.json.BodyText ?? '',human_decision:i.json.requires_human?'PENDIENTE':'N/A'}}));"
+      },
+      "id": "537511fe-4b97-4eba-910c-7a2fe6603b88",
+      "name": "Preparar Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3710,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Logs",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $json.timestamp }}",
+            "original_input": "={{ $json.original_input }}",
+            "intent": "={{ $json.intent }}",
+            "confidence": "={{ $json.confidence }}",
+            "risk": "={{ $json.risk }}",
+            "worker": "={{ $json.worker }}",
+            "status": "={{ $json.status }}",
+            "respuesta": "={{ $json.respuesta }}",
+            "requires_human": "={{ $json.requires_human }}",
+            "human_decision": "={{ $json.human_decision }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "4b59eb64-6fed-4bdf-8097-209db8c967e9",
+      "name": "Guardar Log en Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        3950,
+        1088
+      ]
+    }
+  ],
+  "connections": {
+    "Gmail Trigger - Soporte": {
+      "main": [
+        [
+          {
+            "node": "① IF - ¿Es auto-reply?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "① IF - ¿Es auto-reply?": {
+      "main": [
+        [
+          {
+            "node": "Stop - Auto reply ignorado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "④ Set - Limpiar payload Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "④ Set - Limpiar payload Email": {
+      "main": [
+        [
+          {
+            "node": "AI Triage Email - Groq",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Email Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Triage Email - Groq",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Triage Email - Groq": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Triage Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Triage Email": {
+      "main": [
+        [
+          {
+            "node": "② HubSpot - Look up contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "② HubSpot - Look up contacto": {
+      "main": [
+        [
+          {
+            "node": "¿Contacto existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Contacto existe?": {
+      "main": [
+        [
+          {
+            "node": "HubSpot - Update contacto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HubSpot - Create contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot - Update contacto": {
+      "main": [
+        [
+          {
+            "node": "Buscar memoria por Session_ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot - Create contacto": {
+      "main": [
+        [
+          {
+            "node": "Buscar memoria por Session_ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar memoria por Session_ID": {
+      "main": [
+        [
+          {
+            "node": "Preparar contexto de memoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar contexto de memoria": {
+      "main": [
+        [
+          {
+            "node": "Switch por intención",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch por intención": {
+      "main": [
+        [
+          {
+            "node": "Worker Billing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Worker Tech",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Worker Sales",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HITL - Unknown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Worker Billing": {
+      "main": [
+        [
+          {
+            "node": "Actualizar contador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Worker Tech": {
+      "main": [
+        [
+          {
+            "node": "Actualizar contador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Worker Sales": {
+      "main": [
+        [
+          {
+            "node": "Actualizar contador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HITL - Unknown": {
+      "main": [
+        [
+          {
+            "node": "Actualizar contador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar contador": {
+      "main": [
+        [
+          {
+            "node": "¿Superó 5 mensajes?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Superó 5 mensajes?": {
+      "main": [
+        [
+          {
+            "node": "Summarizer - Groq",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mantener memoria actual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Summarizer Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarizer - Groq",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarizer - Groq": {
+      "main": [
+        [
+          {
+            "node": "Parsear resumen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear resumen": {
+      "main": [
+        [
+          {
+            "node": "Guardar memoria en Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mantener memoria actual": {
+      "main": [
+        [
+          {
+            "node": "Guardar memoria en Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar memoria en Sheets": {
+      "main": [
+        [
+          {
+            "node": "Preparar Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Log": {
+      "main": [
+        [
+          {
+            "node": "Guardar Log en Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Log en Sheets": {
+      "main": [
+        [
+          {
+            "node": "Set - Payload Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Payload Draft": {
+      "main": [
+        [
+          {
+            "node": "③ Gmail - Create Draft HITL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "③ Gmail - Create Draft HITL": {
+      "main": [
+        [
+          {
+            "node": "Set - Payload mínimo Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Payload mínimo Slack": {
+      "main": [
+        [
+          {
+            "node": "Slack - Alertar Operaciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a8424d678d0a353446eec61b677732c76989ea1943a00cd3a5c639891451c875"
+  }
+}
