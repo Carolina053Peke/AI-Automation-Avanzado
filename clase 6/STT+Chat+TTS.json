@@ -1,0 +1,864 @@
+{
+  "name": "Voice AI Checkpoint - STT+Chat+TTS",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -240,
+        2144
+      ],
+      "id": "f2c4622c-91c2-446c-93de-544ef36b1290",
+      "name": "Telegram Trigger",
+      "webhookId": "fb5bf5c9-775d-46e4-bd08-c8009516d5d8",
+      "credentials": {
+        "telegramApi": {
+          "id": "anaM7oxxrY7YfCKU",
+          "name": "Telegram account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        2144
+      ],
+      "id": "fab83066-8fea-4428-a604-7c62b349322f",
+      "name": "Get a file",
+      "webhookId": "b9a25d60-1472-4c64-ac29-799130403d69",
+      "credentials": {
+        "telegramApi": {
+          "id": "anaM7oxxrY7YfCKU",
+          "name": "Telegram account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recorremos los datos y le cambiamos el nombre y extensión al archivo binario\nfor (const item of $input.all()) {\n  if (item.binary && item.binary.data) {\n    item.binary.data.fileName = \"nota_de_voz.ogg\";\n    item.binary.data.fileExtension = \"ogg\";\n  }\n}\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        2144
+      ],
+      "id": "864f4834-fa2b-4f29-b2db-fa66e4b85b09",
+      "name": "Code in JavaScript",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "whisper-large-v3"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "=file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        544,
+        2112
+      ],
+      "id": "03aeeff4-912e-443d-a0d3-209767739e3d",
+      "name": "HTTP Request",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        768,
+        2144
+      ],
+      "id": "777a4f3f-5c19-4985-b85b-aa3d60f3aeb2",
+      "name": "AI Agent",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.8-27b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        656,
+        2352
+      ],
+      "id": "1b900fad-590e-41b4-85d9-1478b1636a17",
+      "name": "Groq Chat Model",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "sendAudio",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "file": "=data",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1376,
+        2128
+      ],
+      "id": "460d7b5d-1da6-4df7-81d5-a437614ff249",
+      "name": "Send an audio file",
+      "webhookId": "a8e037fe-3802-4aff-812c-9bb73760bfdc",
+      "credentials": {
+        "telegramApi": {
+          "id": "anaM7oxxrY7YfCKU",
+          "name": "Telegram account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "text": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.minimax",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        2128
+      ],
+      "id": "d4b8cfbc-4190-4b45-891b-a981cdb87993",
+      "name": "Convert text to speech1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "3e063fa5-2436-4bd3-8177-10a40aaf991c",
+      "name": "Telegram Trigger - Voz Entrante",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -256,
+        1248
+      ],
+      "webhookId": "your-webhook-id",
+      "credentials": {
+        "telegramApi": {
+          "id": "anaM7oxxrY7YfCKU",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-audio",
+              "leftValue": "={{ $json.message.voice.file_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "09263bf9-59eb-4189-91c5-2a9af0ad84f2",
+      "name": "IF - ¿Tiene Audio?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        1248
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "id": "a44a164b-cf37-4d98-a916-ef9ac0c00358",
+      "name": "Get a file - Descargar Audio",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        272,
+        1168
+      ],
+      "webhookId": "f7d34c1f-4e24-40cf-ab7b-24a01426ef47",
+      "credentials": {
+        "telegramApi": {
+          "id": "anaM7oxxrY7YfCKU",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recorremos los datos y le cambiamos el nombre y extensión al archivo binario\nfor (const item of $input.all()) {\n  if (item.binary && item.binary.data) {\n    item.binary.data.fileName = \"nota_de_voz.ogg\";\n    item.binary.data.fileExtension = \"ogg\";\n  }\n}\nreturn $input.all();"
+      },
+      "id": "0aaf2caa-42ab-41e1-9e74-18bfacceea39",
+      "name": "Code in JavaScript - Renombra Archivo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        1248
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "file",
+              "value": "data"
+            },
+            {
+              "name": "model",
+              "value": "whisper-large-v3-turbo"
+            },
+            {
+              "name": "language",
+              "value": "es"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7ff177f0-93e3-465f-9b8b-8c6c06cb137e",
+      "name": "HTTP Request - Whisper STT (Groq)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        880,
+        784
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"qwen/qwen3.6-27b\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Transcribe this audio URL: {{ $json.upload_url }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "263276c0-e02f-483a-b432-bca6fdd0198f",
+      "name": "HTTP Request - Groq Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1184,
+        1248
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "7FUhOO2BA3eFxEKO",
+          "name": "Groq-Chat-New"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAudio",
+        "chatId": "={{ $items(\"Telegram Trigger - Voz Entrante\")[0].json.message.chat.id }}",
+        "file": "={{ $json }}",
+        "additionalFields": {}
+      },
+      "id": "639a2674-0b06-4efb-a22e-53689e0e907a",
+      "name": "Telegram - Send Audio File",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1456,
+        1248
+      ],
+      "webhookId": "16c34c0f-e109-4baa-a35e-de7726a6b834",
+      "credentials": {
+        "telegramApi": {
+          "id": "anaM7oxxrY7YfCKU",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "❌ Error: No se recibió audio válido.",
+        "additionalFields": {}
+      },
+      "id": "08ba1662-2c87-44c2-92bf-f98831b6d077",
+      "name": "Telegram - Error (No Audio)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        272,
+        1376
+      ],
+      "webhookId": "6e204e9d-cb24-4d98-b0d9-6acf684b26cd",
+      "credentials": {
+        "telegramApi": {
+          "id": "anaM7oxxrY7YfCKU",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "voice": "nova",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1168,
+        800
+      ],
+      "id": "e19f7881-418f-48f6-9002-1f09309145e7",
+      "name": "Generate audio",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "20fdaca2-b074-42b9-abc8-cec36b58b483",
+      "name": "Telegram Trigger - Voz Entrada",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "54fc3ed3-38ad-4ded-a38e-bb90da91d314",
+      "credentials": {
+        "telegramApi": {
+          "id": "anaM7oxxrY7YfCKU",
+          "name": "Telegram account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.deepgram.com/v1/listen",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": []
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Token c80fb000f1e10dd5793c0f80ee7985fc75d690d5"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "nova-2"
+            },
+            {
+              "name": "language",
+              "value": "es"
+            },
+            {
+              "name": "audio",
+              "value": "={{ $binary.data }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "91682f68-6236-4c68-96af-80e11a53b339",
+      "name": "HTTP Request - Deepgram STT",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        256,
+        0
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xi-api-key",
+              "value": "{{ $credentials.elevenLabsApiKey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "id": "117af904-1ac3-400f-9b7c-ec93f11b5dba",
+      "name": "HTTP Request - ElevenLabs TTS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        0
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ce63abc2-b106-493a-a7fa-388d4648a7cb",
+              "name": "chatId",
+              "value": "{{ $items(\"Telegram Trigger - Voz Entrada\")[0].json.message.chat.id }}",
+              "type": "string"
+            },
+            {
+              "id": "f4fe6fd9-1be7-42a1-a027-23e7b85686f0",
+              "name": "audioData",
+              "value": "={{ $json }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2147e6f9-d5c9-4f45-9c8c-27087737f61a",
+      "name": "Set - Chat ID & Audio",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        896,
+        0
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $credentials.groqApiKey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "id": "29006e66-74bb-4c11-a04b-6d99052c11e2",
+      "name": "HTTP Request - Groq Chat1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        512,
+        0
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.audioData }}",
+        "additionalFields": {}
+      },
+      "id": "385d2ec0-66de-4925-88b7-771a3dc20c34",
+      "name": "Telegram - Send Audio File1",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        0
+      ],
+      "webhookId": "b75a706e-187e-4918-b444-2916915d0f83",
+      "credentials": {
+        "telegramApi": {
+          "id": "anaM7oxxrY7YfCKU",
+          "name": "Telegram account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.assemblyai.com/v2/upload",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "d493765b8fa1448bb5270ec249782543"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"audio\": \"{{ $binary.data.toString('base64') }}\",\n  \"language_code\": \"es\"\n}",
+        "options": {}
+      },
+      "id": "7d8b484e-cbff-453d-a11f-0fd0886f3ec2",
+      "name": "HTTP Request - Assembly STT1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        864,
+        1248
+      ]
+    }
+  ],
+  "pinData": {
+    "Telegram Trigger": [
+      {
+        "json": {
+          "update_id": 411993877,
+          "message": {
+            "message_id": 17,
+            "from": {
+              "id": 8491456329,
+              "is_bot": false,
+              "first_name": "Carolina",
+              "last_name": "Lemes",
+              "language_code": "es"
+            },
+            "chat": {
+              "id": 8491456329,
+              "first_name": "Carolina",
+              "last_name": "Lemes",
+              "type": "private"
+            },
+            "date": 1787761547,
+            "voice": {
+              "duration": 5,
+              "mime_type": "audio/ogg",
+              "file_id": "AwACAgEAAxkBAAMRao8Tik7k9NRBve1L6kJK-nMb6l0AAsUGAAKbunhEa04QO1Kmi_o9BA",
+              "file_unique_id": "AgADxQYAApu6eEQ",
+              "file_size": 21000
+            }
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Convert text to speech1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert text to speech1": {
+      "main": [
+        [
+          {
+            "node": "Send an audio file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger - Voz Entrante": {
+      "main": [
+        [
+          {
+            "node": "IF - ¿Tiene Audio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - ¿Tiene Audio?": {
+      "main": [
+        [
+          {
+            "node": "Get a file - Descargar Audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram - Error (No Audio)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file - Descargar Audio": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript - Renombra Archivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript - Renombra Archivo": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Assembly STT1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Groq Chat": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Send Audio File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger - Voz Entrada": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Deepgram STT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Deepgram STT": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Groq Chat1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - ElevenLabs TTS": {
+      "main": [
+        [
+          {
+            "node": "Set - Chat ID & Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Chat ID & Audio": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Send Audio File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Groq Chat1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - ElevenLabs TTS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Assembly STT1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Groq Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e1396a00-16a2-4827-8d7a-b4ddf1e0f57e",
+  "meta": {
+    "instanceId": "3d6f45bf59cb019973cb542665b2909f319713d5ca96b7aa1b6f13611d587ce4"
+  },
+  "nodeGroups": [],
+  "id": "JS8AReEoZcqvA0A2",
+  "tags": []
+}
