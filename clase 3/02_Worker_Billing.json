@@ -1,0 +1,121 @@
+{
+  "name": "CLASE - Worker Billing",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "original_input"
+            },
+            {
+              "name": "intent"
+            },
+            {
+              "name": "confidence",
+              "type": "number"
+            },
+            {
+              "name": "risk"
+            }
+          ]
+        }
+      },
+      "id": "55e18629-ff83-437f-afba-c6845b8ba51e",
+      "name": "Entrada desde Manager",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Sos el especialista Billing de una mesa de ayuda empresarial.\n\nSolicitud original:\n{{ $json.original_input }}\n\nIntención detectada: {{ $json.intent }}\nConfianza: {{ $json.confidence }}\nRiesgo: {{ $json.risk }}\n\nAtendé únicamente consultas de facturación, cobros, suscripciones y pagos. No prometas reintegros ni ejecutes movimientos financieros.\n\nNo inventes datos. Si la solicitud requiere una acción sensible, dinero, eliminación de información, cambios irreversibles o no tenés información suficiente, indicá que requiere revisión humana.\n\nRespondé SOLO como JSON válido, sin markdown:\n{\n  \"status\": \"success\",\n  \"worker\": \"BILLING\",\n  \"respuesta\": \"respuesta breve y clara para el usuario\",\n  \"requires_human\": false\n}"
+      },
+      "id": "a451e12d-bdb6-41e2-82c1-33900fc826e8",
+      "name": "Especialista Billing - Groq",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        -240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "a06b9f75-87c7-41a3-91c2-9cbf2cf636fd",
+      "name": "Modelo Groq",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.text ?? $json.output ?? $json.response ?? '';\nlet d;\ntry {\n  const clean = String(raw).replace(/^```json\\s*/i, '').replace(/```$/,'').trim();\n  d = JSON.parse(clean);\n} catch (e) {\n  d = {\n    status: 'error',\n    worker: 'BILLING',\n    respuesta: String(raw || 'No se pudo interpretar la respuesta del especialista.'),\n    requires_human: true\n  };\n}\nreturn [{ json: {\n  status: d.status ?? 'success',\n  worker: d.worker ?? 'BILLING',\n  respuesta: d.respuesta ?? '',\n  requires_human: Boolean(d.requires_human)\n} }];"
+      },
+      "id": "d8f12296-9ccf-4abf-8d4f-ac2ac2f92a78",
+      "name": "Contrato de salida",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Entrada desde Manager": {
+      "main": [
+        [
+          {
+            "node": "Especialista Billing - Groq",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Especialista Billing - Groq": {
+      "main": [
+        [
+          {
+            "node": "Contrato de salida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Especialista Billing - Groq",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "versionId": "c0c7e6f4-4183-4130-a36c-246e06efa218",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

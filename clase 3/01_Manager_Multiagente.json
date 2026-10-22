@@ -1,0 +1,555 @@
+{
+  "name": "CLASE - Manager Multiagente",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "0eb75877-130b-4149-ae91-e06b47dda503",
+      "name": "Ejecutar prueba",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d58284f8-c881-4352-8a01-7d388ed587f5",
+              "name": "original_input",
+              "value": "Me cobraron dos veces la suscripción de este mes.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f82a97f1-2c3f-49d6-9ba6-4b65842c0952",
+      "name": "Input de prueba",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -700,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Sos el Router de una mesa de ayuda empresarial.\n\nMensaje:\n{{ $json.original_input }}\n\nTu única tarea es clasificar. NO resuelvas el problema.\n\nIntent permitidos:\n- BILLING: cobros, pagos, facturas, suscripciones.\n- TECH_SUPPORT: acceso, errores, funcionamiento técnico.\n- SALES: planes, contratación, interés comercial.\n- UNKNOWN: ambiguo o fuera de alcance.\n\nRisk:\n- LOW: consulta informativa o diagnóstico seguro.\n- MEDIUM: podría implicar modificación o comunicación externa.\n- HIGH: dinero/reembolso de monto importante, eliminación, cambio irreversible o acción sensible.\n\nConfidence: número entre 0 y 1 sobre la clasificación.\n\nRespondé SOLO JSON válido:\n{\n  \"intent\": \"BILLING\",\n  \"confidence\": 0.95,\n  \"risk\": \"LOW\"\n}"
+      },
+      "id": "6f2db9d4-6556-4ae7-95a8-fe8374bff427",
+      "name": "Router IA - Groq",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        -470,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "id": "741baf38-2e42-4291-b107-ab49c6aba852",
+      "name": "Modelo Router Groq",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -470,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Input de prueba').first().json.original_input;\nconst raw = $json.text ?? $json.output ?? $json.response ?? '';\nlet d;\ntry {\n  d = JSON.parse(String(raw).replace(/^```json\\s*/i,'').replace(/```$/,'').trim());\n} catch (e) {\n  d = { intent:'UNKNOWN', confidence:0, risk:'HIGH' };\n}\nconst allowed = ['BILLING','TECH_SUPPORT','SALES','UNKNOWN'];\nconst intent = allowed.includes(d.intent) ? d.intent : 'UNKNOWN';\nconst confidence = Math.max(0, Math.min(1, Number(d.confidence ?? 0)));\nconst risk = ['LOW','MEDIUM','HIGH'].includes(d.risk) ? d.risk : 'HIGH';\nreturn [{json:{original_input:original,intent,confidence,risk}}];"
+      },
+      "id": "0b574682-57ff-42ae-b7b1-e00871cb5c41",
+      "name": "Normalizar contrato Router",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ecd9232c-ce3c-48da-8e26-0e9e9fed5d48",
+              "leftValue": "={{ $json.risk }}",
+              "rightValue": "HIGH",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "039f1971-61b5-4977-9125-3957024653f4",
+              "leftValue": "={{ $json.confidence }}",
+              "rightValue": 0.5,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "b708dac8-6bc6-4fa4-808a-7bccc268c7ce",
+      "name": "¿Requiere HITL?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        20,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "fe1b0825-233f-4ee2-9276-bac40c6def70",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "BILLING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "BILLING"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "26157776-e2b2-42c8-887a-5e9b481507e1",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "TECH_SUPPORT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "TECH_SUPPORT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7ac8ece6-501f-4d2f-9e10-aa456bd1b464",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "SALES",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "SALES"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "3713cdbc-8f96-4b36-afc6-ab9290042a12",
+      "name": "Switch por intención",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        270,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "original_input": "={{ $json.original_input }}",
+            "intent": "={{ $json.intent }}",
+            "confidence": "={{ $json.confidence }}",
+            "risk": "={{ $json.risk }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "52dc8c8c-bef8-4f27-a520-9d47e48023e0",
+      "name": "Ejecutar Worker Billing",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        560,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "original_input": "={{ $json.original_input }}",
+            "intent": "={{ $json.intent }}",
+            "confidence": "={{ $json.confidence }}",
+            "risk": "={{ $json.risk }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "e8090e67-7cfc-4fb2-9d35-b804253f884e",
+      "name": "Ejecutar Worker Tech",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        560,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "original_input": "={{ $json.original_input }}",
+            "intent": "={{ $json.intent }}",
+            "confidence": "={{ $json.confidence }}",
+            "risk": "={{ $json.risk }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "bdcbe96c-5ffc-44a1-8d2b-538f077d1854",
+      "name": "Ejecutar Worker Sales",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        560,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "26679462-7dbc-44bf-a344-561ed018f597",
+              "name": "status",
+              "value": "needs_human",
+              "type": "string"
+            },
+            {
+              "id": "6de45167-a3b4-4ecd-9b72-ff5ce1da209c",
+              "name": "worker",
+              "value": "HITL",
+              "type": "string"
+            },
+            {
+              "id": "1dc46813-ac25-4821-8d6c-0dea3c3c2ff7",
+              "name": "respuesta",
+              "value": "La solicitud necesita revisión humana por riesgo alto, baja confianza o intención no reconocida.",
+              "type": "string"
+            },
+            {
+              "id": "4c49ddee-1f27-4765-b82b-03fd2a3a8d6a",
+              "name": "requires_human",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9ee29270-23f0-4878-b07e-f359e081f0e5",
+      "name": "Preparar HITL / Unknown",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        560,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => ({json:{\n  timestamp:new Date().toISOString(),\n  status:item.json.status ?? 'success',\n  worker:item.json.worker ?? 'N/D',\n  respuesta:item.json.respuesta ?? '',\n  requires_human:Boolean(item.json.requires_human)\n}}));"
+      },
+      "id": "9b4ac969-7ce1-4267-b436-4e8f9fa2a24e",
+      "name": "Preparar respuesta final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        850,
+        130
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => ({json:{\n  ...item.json,\n  log:`${item.json.timestamp} | worker=${item.json.worker} | status=${item.json.status} | HITL=${item.json.requires_human}`\n}}));"
+      },
+      "id": "7bd2ba69-e058-463b-86aa-553361c8a0f7",
+      "name": "Log de ejecución",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        130
+      ]
+    }
+  ],
+  "connections": {
+    "Ejecutar prueba": {
+      "main": [
+        [
+          {
+            "node": "Input de prueba",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input de prueba": {
+      "main": [
+        [
+          {
+            "node": "Router IA - Groq",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router IA - Groq": {
+      "main": [
+        [
+          {
+            "node": "Normalizar contrato Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Router Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Router IA - Groq",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar contrato Router": {
+      "main": [
+        [
+          {
+            "node": "¿Requiere HITL?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Requiere HITL?": {
+      "main": [
+        [
+          {
+            "node": "Preparar HITL / Unknown",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch por intención",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch por intención": {
+      "main": [
+        [
+          {
+            "node": "Ejecutar Worker Billing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ejecutar Worker Tech",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ejecutar Worker Sales",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar HITL / Unknown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar Worker Billing": {
+      "main": [
+        [
+          {
+            "node": "Preparar respuesta final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar Worker Tech": {
+      "main": [
+        [
+          {
+            "node": "Preparar respuesta final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar Worker Sales": {
+      "main": [
+        [
+          {
+            "node": "Preparar respuesta final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar HITL / Unknown": {
+      "main": [
+        [
+          {
+            "node": "Preparar respuesta final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar respuesta final": {
+      "main": [
+        [
+          {
+            "node": "Log de ejecución",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "versionId": "b26e4fdb-698a-46ac-b5e5-b7746784953b",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
