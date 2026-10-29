@@ -1,0 +1,189 @@
+{
+  "name": "M5 - Retrieval Pinecone + Groq",
+  "nodes": [
+    {
+      "id": "1a6d86e3-a600-45ee-a006-df4270a1526c",
+      "name": "Ejecutar consulta",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        260
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "70bbb504-64d2-481d-bf29-ff375e806ab9",
+      "name": "Pregunta de prueba",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        420,
+        260
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6d816245-5074-4df1-ad93-88a99d54620e",
+              "name": "pregunta",
+              "value": "¿Qué descuento corresponde por 25 licencias?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "72ae9c9e-0ec0-4fd6-9467-a0913d29362f",
+      "name": "Pinecone - Buscar chunks",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1,
+      "position": [
+        650,
+        260
+      ],
+      "parameters": {
+        "mode": "load",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "novasaas-politicas",
+          "mode": "name"
+        },
+        "prompt": "={{ $json.pregunta }}",
+        "topK": 4,
+        "options": {}
+      }
+    },
+    {
+      "id": "f0aa8043-5ead-4917-8091-e7f238ae37be",
+      "name": "Embeddings OpenAI - Consulta",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1,
+      "position": [
+        720,
+        490
+      ],
+      "parameters": {
+        "options": {}
+      }
+    },
+    {
+      "id": "9ae23998-782c-40bc-9c51-ca4acfe2f7dd",
+      "name": "Preparar evidencia",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        260
+      ],
+      "parameters": {
+        "jsCode": "const rows=$input.all().map(x=>x.json);const pregunta=$('Pregunta de prueba').first().json.pregunta;const chunks=rows.map((r,i)=>({n:i+1,texto:String(r.pageContent??r.text??r.document?.pageContent??r.metadata?.text??''),fuente:r.metadata?.source??r.document?.metadata?.source??'Documento NovaSaaS',score:r.score??null})).filter(x=>x.texto.trim());return [{json:{pregunta,chunks,contexto:chunks.map(c=>`[Fuente ${c.n}: ${c.fuente}]\\n${c.texto}`).join('\\n\\n'),encontrado:chunks.length>0}}];"
+      }
+    },
+    {
+      "id": "cc604500-fff2-4dbe-9f00-9dba55d372ca",
+      "name": "Respuesta RAG - Groq",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        1160,
+        260
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Respondé exclusivamente con la evidencia recuperada. Si no hay evidencia suficiente, decí 'No encuentro esa información en las políticas disponibles'. No inventes condiciones. Incluí la fuente documental.\\nPREGUNTA: {{ $json.pregunta }}\\nEVIDENCIA: {{ $json.contexto || 'Sin resultados' }}"
+      }
+    },
+    {
+      "id": "c30cb113-3679-403c-8476-896f1635dd98",
+      "name": "Modelo Groq",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1190,
+        500
+      ],
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "temperature": 0
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Ejecutar consulta": {
+      "main": [
+        [
+          {
+            "node": "Pregunta de prueba",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pregunta de prueba": {
+      "main": [
+        [
+          {
+            "node": "Pinecone - Buscar chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone - Buscar chunks": {
+      "main": [
+        [
+          {
+            "node": "Preparar evidencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI - Consulta": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone - Buscar chunks",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar evidencia": {
+      "main": [
+        [
+          {
+            "node": "Respuesta RAG - Groq",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Respuesta RAG - Groq",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

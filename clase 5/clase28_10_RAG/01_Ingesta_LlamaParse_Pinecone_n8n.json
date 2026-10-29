@@ -1,0 +1,205 @@
+{
+  "name": "M5 - Ingesta LlamaParse visual a Pinecone",
+  "nodes": [
+    {
+      "id": "533d95b0-fede-40d0-89c7-546532a137dc",
+      "name": "Ejecutar ingesta",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        280
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "2801ca3a-ce81-4d98-9877-6f1be2251c83",
+      "name": "Pegar resultado LlamaParse",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        420,
+        280
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8a1247bb-efcd-43c2-8a7f-041c0806eb94",
+              "name": "markdown",
+              "value": "# NovaSaaS | Políticas comerciales 2026\\n\\nREEMPLAZAR ESTE TEXTO POR EL MARKDOWN EXPORTADO DE LLAMAPARSE",
+              "type": "string"
+            },
+            {
+              "id": "2eee76c5-42fe-4f40-8e42-96995a14975e",
+              "name": "documento",
+              "value": "Politicas_NovaSaaS_PDF.pdf",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "17fe4b9c-8cf8-448a-b878-cbc16b32e9f1",
+      "name": "Preparar texto para loader",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        280
+      ],
+      "parameters": {
+        "jsCode": "const txt = String($json.markdown || '').replace(/\\\\n/g, '\\n');\nif (txt.includes('REEMPLAZAR ESTE TEXTO')) throw new Error('Pegá primero el Markdown real de LlamaParse en el nodo anterior');\nreturn [{json:{documento:$json.documento, texto:txt, origen:'LlamaParse'},binary:{data:{data:Buffer.from(txt,'utf8').toString('base64'),mimeType:'text/plain',fileName:'politicas_novasaas.txt'}}}];"
+      }
+    },
+    {
+      "id": "ded8f073-5480-46c1-b59e-7ef88cc17134",
+      "name": "Pinecone - Insertar documentos",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1,
+      "position": [
+        920,
+        280
+      ],
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "novasaas-politicas",
+          "mode": "name"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "82b4427f-3a96-4e5e-a85f-810f13eb28ef",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        850,
+        520
+      ],
+      "parameters": {
+        "dataType": "binary",
+        "mode": "json",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "source",
+                "value": "Politicas_NovaSaaS_PDF.pdf"
+              },
+              {
+                "name": "pipeline",
+                "value": "LlamaParse"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "43540f38-4b9e-4baf-9e8f-683af2efa214",
+      "name": "Recursive Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        840,
+        760
+      ],
+      "parameters": {
+        "chunkSize": 700,
+        "chunkOverlap": 100
+      }
+    },
+    {
+      "id": "0c710018-e586-4d11-8189-6f4dc6f9d30b",
+      "name": "Embeddings OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        520
+      ],
+      "parameters": {
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Ejecutar ingesta": {
+      "main": [
+        [
+          {
+            "node": "Pegar resultado LlamaParse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pegar resultado LlamaParse": {
+      "main": [
+        [
+          {
+            "node": "Preparar texto para loader",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar texto para loader": {
+      "main": [
+        [
+          {
+            "node": "Pinecone - Insertar documentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone - Insertar documentos",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone - Insertar documentos",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
