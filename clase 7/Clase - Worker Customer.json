@@ -1,0 +1,255 @@
+{
+  "name": "Clase - Worker Customer",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "original_input"
+            },
+            {
+              "name": "intent"
+            },
+            {
+              "name": "confidence",
+              "type": "number"
+            },
+            {
+              "name": "risk"
+            },
+            {
+              "name": "tickets_abiertos",
+              "type": "number"
+            },
+            {
+              "name": "historial_pendiente",
+              "type": "number"
+            },
+            {
+              "name": "dias_sin_uso",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "id": "1a4d5da0-44be-48a6-ae08-2f4e654b29ca",
+      "name": "Entrada desde Manager",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        96,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "74a03513-8953-48ea-89d3-c0533d2380b5",
+              "name": "original_input",
+              "value": "={{ $json.original_input }}",
+              "type": "string"
+            },
+            {
+              "id": "703d0c4d-d58b-4bce-a8c3-28f4e31ba1ce",
+              "name": "tickets_abiertos",
+              "value": "={{ Number($json.tickets_abiertos ?? 4) }}",
+              "type": "string"
+            },
+            {
+              "id": "3c85f811-d706-4cd7-958f-272792b3afc0",
+              "name": "dias_sin_uso",
+              "value": "={{ Number($json.dias_sin_uso ?? 12) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        320,
+        32
+      ],
+      "id": "e7a146d0-74c4-4ef8-a60c-7444471b1ff4",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "94363627-e0f8-42fe-a661-b1bc4b9ca2cd",
+              "leftValue": "={{ $json.tickets_abiertos >= 3 &&\n   $json.dias_sin_uso >= 10 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        544,
+        32
+      ],
+      "id": "022b8c18-bc08-4454-9a97-a20a96e6444e",
+      "name": "¿Riesgo alto de baja?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "38552297-025d-4436-aa09-820cfa92edb7",
+              "name": "status",
+              "value": "needs_human",
+              "type": "string"
+            },
+            {
+              "id": "703b1e00-ef19-40e1-9fd0-4a324c02f63e",
+              "name": "worker",
+              "value": "CUSTOMER_SUCCESS",
+              "type": "string"
+            },
+            {
+              "id": "b344e9c9-e04e-4ef6-b6d3-010e08d29039",
+              "name": "respuesta",
+              "value": "Cliente con riesgo alto de abandono. Revisar historial, tickets, uso de credenciales, etc. Antes de cualquier propuesta comercial",
+              "type": "string"
+            },
+            {
+              "id": "0b4aa575-f6a0-452b-980c-41c2e13d4533",
+              "name": "requires_human",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "9d1d0109-ca16-4d83-8e97-41291d5aa59d",
+              "name": "churn_risk",
+              "value": "=HIGH",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "include": "selected",
+        "includeFields": "original_input",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        768,
+        -64
+      ],
+      "id": "8aea8467-33f3-4485-a5f8-906c3c4bf4c0",
+      "name": "Salida CS - Escalar a un humano"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0edeb4a4-c755-4292-aa83-716a14c35b6e",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "85ab100f-eba5-49f2-ba89-e1a45eac197f",
+              "name": "worker",
+              "value": "CUSTOMER_SUCCESS",
+              "type": "string"
+            },
+            {
+              "id": "db51dc1e-7d7c-45b2-9d55-6db560d631ca",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        768,
+        128
+      ],
+      "id": "de3c0ad1-fddb-4929-ba63-39c007b852d1",
+      "name": "Salida CS - Seguimiento"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Entrada desde Manager": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "¿Riesgo alto de baja?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Riesgo alto de baja?": {
+      "main": [
+        [
+          {
+            "node": "Salida CS - Escalar a un humano",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Salida CS - Seguimiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a5f8e45b-0bff-41a5-9857-946dcf810ac0",
+  "meta": {
+    "instanceId": "3d6f45bf59cb019973cb542665b2909f319713d5ca96b7aa1b6f13611d587ce4"
+  },
+  "nodeGroups": [],
+  "id": "70msBH6uf7M3AHdS",
+  "tags": []
+}
