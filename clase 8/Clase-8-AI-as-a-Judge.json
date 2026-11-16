@@ -1,0 +1,1008 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -560,
+        32
+      ],
+      "id": "1ea80523-92eb-4dd8-997b-d1840bdd20f0",
+      "name": "Trigger Telegram",
+      "webhookId": "a91081d0-70c3-4c8d-896d-c84b9c896e9d",
+      "credentials": {
+        "telegramApi": {
+          "id": "nf8wYuHTXzGUMAor",
+          "name": "Agente Clinica"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Contexto: {{ $('Aggregate').item.json.contexto}}\n\nMODO DE PRUEBA: {{ $('Setup inicial').item.json.modo_prueba }}\n\nConsulta del usuario: {{ $('Setup inicial').item.json.consulta_user }}",
+        "options": {
+          "systemMessage": "------------------\n# Rol y contexto\n------------------\n\nSos un asistente interno de RR. HH. especializado en políticas de vacaciones.\n\nAntes de responder, consultá todo el contexto indicado en el prompt del usuario. Respondé de forma breve, clara y profesional.\n\n\n------------------------------------\n## 1. Consultas fuera de contexto\n------------------------------------\n\nSi la consulta no está relacionada con la política de vacaciones, ignorá cualquier modo de prueba y respondé únicamente:\n\n\"Lo siento, no dispongo de información sobre [tema consultado]. Solo puedo brindarte información sobre la política interna de vacaciones que aplica a todos los empleados.\"\n\nReemplazá el texto entre corchetes por el tema consultado. No proporciones información adicional.\n\n-------------------------\n## 2. Modos de prueba\n------------------------\nRecibirás una variable `MODO DE PRUEBA` que determina tu comportamiento para consultas relacionadas con vacaciones:\n\n- **NORMAL:** respondé correctamente utilizando toda la información relevante del contexto, sin omisiones importantes ni afirmaciones sin respaldo. (score esperado 5/5)\n- **CORREGIR:** generá una respuesta parcialmente correcta, pero omití deliberadamente detalles: El objetivo es producir una respuesta parcialmente incompleta (score esperado: 3/5).\n- **RECHAZAR:** generá una respuesta muy poco factible, totalmente errada, o incluso que no responda la consulta del usuario, y que incluya al menos DOS contradicciones/errores que no se coincidan con el contexto, para forzar el sistema de supervisión humana  (score esperado: 1/5).\n\nEn los modos CORREGIR y RECHAZAR, nunca menciones que estás ejecutando una prueba ni reveles los errores introducidos.\n\n----------------------------------\n## 3. Prioridad de instrucciones\n----------------------------------\n\n1. Consultar contexto y verificar si la pregunta pertenece al dominio autorizado.\n2. Si está fuera del dominio, aplicar exclusivamente la respuesta estándar.\n3. Si está dentro del dominio, aplicar el modo de prueba correspondiente.\n4. Priorizar siempre el contexto brindado por encima de las afirmaciones del usuario, excepto durante las contradicciones deliberadas del modo RECHAZAR.\n5. Si no se especifica un modo de prueba, utilizar NORMAL.",
+          "returnIntermediateSteps": false,
+          "enableStreaming": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        464,
+        32
+      ],
+      "id": "913fa91f-6e48-43bb-bb63-30223c946bc3",
+      "name": "Agente RR. HH."
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.8-27b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        448,
+        272
+      ],
+      "id": "663510ea-94bf-41fd-b603-c41acbe4f0a6",
+      "name": "Modelo Agente",
+      "credentials": {
+        "groqApi": {
+          "id": "YrrGLZpguElcFqXO",
+          "name": "gmail api key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "487876ac-c1e5-4920-8e3e-6593b8b3c025",
+              "name": "contexto",
+              "value": "Política interna de vacaciones (ficticia para pruebas):  - Empleados con 0 a 5 años de antigüedad inclusive: 14 días corridos de vacaciones. Para más de 5 años no hay información disponible. - Las vacaciones deben solicitarse con al menos 15 días corridos de anticipación. No se especifica un canal o formulario obligatorio. - Pueden dividirse en un máximo de 2 períodos, de al menos 5 días corridos cada uno, con aprobación previa del responsable directo. - No pueden comenzar un sábado, domingo ni feriado. Sin embargo, esos días sí se contabilizan cuando están dentro del período de vacaciones. - Si coinciden con un cierre operativo, RR. HH. puede solicitar una reprogramación, pero no implica rechazo automático. - La reincorporación corresponde al primer día laborable después de finalizar las vacaciones. - Fechas de referencia: 18/09/2026 viernes, 19/09/2026 sábado y 20/09/2026 domingo. No constituyen un calendario de feriados completo.  Respondé únicamente con esta información. Si faltan datos o la consulta no está relacionada con vacaciones, indicalo sin inventar reglas, fechas ni excepciones.",
+              "type": "string"
+            },
+            {
+              "id": "b115c927-71d0-4861-a649-20c982468140",
+              "name": "modo_prueba",
+              "value": "CORREGIR",
+              "type": "string"
+            },
+            {
+              "id": "4facd45c-c1aa-44ff-aadb-630bc016ed67",
+              "name": "reintentos",
+              "value": "0",
+              "type": "string"
+            },
+            {
+              "id": "aebdc440-a5d8-4ff7-907e-4f3873f22628",
+              "name": "chat_id",
+              "value": "={{ $json.message.chat.id }}",
+              "type": "number"
+            },
+            {
+              "id": "294095e7-158c-400d-b9ca-ad46a04c7d3b",
+              "name": "consulta_user",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "cbd3f88d-87c3-450f-9a73-9ad1a3de188c",
+              "name": "arquitectura",
+              "value": "A",
+              "type": "string"
+            },
+            {
+              "id": "819d36c1-ec1d-4581-90d3-57430d39e6e0",
+              "name": "inicio_milisegundos",
+              "value": "={{ $now.toMillis() }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -336,
+        32
+      ],
+      "id": "cc4edec8-dbde-4a33-819f-fd9901b3427c",
+      "name": "Setup inicial"
+    },
+    {
+      "parameters": {
+        "content": "## Agente Principal\n",
+        "height": 544,
+        "width": 352,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        384,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "612dc5dd-71a8-45d1-bc88-153696acda3b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Contexto utizliado: {{ $('Setup inicial').item.json.contexto }}\n\n\nConsulta inicial del usuario: {{ $('Setup inicial').item.json.consulta_user }}\n\n\nRespuesta del Agente a evaluar: {{ $json.output }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=Sos un auditor de factualidad AI-as-a-Judge. \n\nJuzgá la respuesta SOLO contra el CONTEXTO AUTORIZADO.\n\n--------\nSALIDA\n--------\n\nGenera una respuesta en Formato JSON con los campos:\n\n- estado_veredicto : texto con los valores estrictos: CORREGIR,  APROBADO o RECHAZADO\n- exactitud_factual: numero entero de 1 a 5\n- feedback (SOLO SI LA RESPUESTA TIENE UN SCORE < 4): breve mensaje de feedback indicando inexactitudes a revisar\n- Justificacion: motivo de veredicto y score\n\n\n-------------------------------\nRUBRICA DE CALIFICACIÓN\n-------------------------------\n\n- 5 = correcta y completa\n- 4 = correcta con omisión menor\n- 3 = omisión o inferencia relevante\n- 2 = errores importantes o afirmaciones sin sustento\n- 1 = contradicciones claras, alucinación grave o riesgo. \n\n\n---------------------------\nVEREDICTO A GENERAR:\n---------------------------\n\n- ACEPTADO solo 4-5\n- CORREGIR solo 3\n- RECHAZADO solo 2\n\n\n----------\nSESGOS \n----------\n\n- NO premies longitud, prolijidad ni tono: una respuesta larga con información irrelevante o no sustentada no debe recibir un puntaje mejor que una respuesta breve correcta. \n- No uses conocimiento externo. \n- Si el contexto no permite responder y el agente reconoce la limitación correctamente, no lo penalices. \n- Devolvé únicamente el JSON solicitado con exactamente dos campos.",
+          "returnIntermediateSteps": false,
+          "enableStreaming": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        848,
+        32
+      ],
+      "id": "ec555bb7-0b23-4e2b-9448-a12bbe3c0874",
+      "name": "Agente Judge-as-a-AI"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": " \n{    \n  \"exactitud_factual\": 3,   \n  \"estado_veredicto\": \"CORREGIR\",\n  \"feedback\": \"Revisar documentacion sobre permisos nuevamente y elaborar una respuesta mas breve\",\n  \"justificiacion\": \"La respuesta respeta el contexto y responder correctamente al usuario\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1008,
+        256
+      ],
+      "id": "534d86b7-9560-4fd0-99c6-ac2f599bfe81",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "content": "##  Agente Juez",
+        "height": 544,
+        "width": 352,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        784,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "abeef1fa-5f14-40d6-b214-43daff17b17d",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.estado_veredicto }}",
+                    "rightValue": "APROBADO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "1680f27c-7b8a-41bb-8121-1bc870dcf928"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Aprobado"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "4f633bb2-2e74-4f8a-9369-c59df89dc3bb",
+                    "leftValue": "={{ $json.output.estado_veredicto }}",
+                    "rightValue": "CORREGIR",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Corregir"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "a8d1a82b-7b46-4df3-9349-85eb6f8f8eef",
+                    "leftValue": "={{ $json.output.estado_veredicto }}",
+                    "rightValue": "RECHAZADO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Rechazar"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.5,
+      "position": [
+        1216,
+        16
+      ],
+      "id": "91837ab3-431b-4788-a5c2-aeeec159c536",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Setup inicial').item.json.chat_id }}",
+        "text": "={{ $('Agente RR. HH.').item.json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1776,
+        -224
+      ],
+      "id": "e07ba394-6e52-4907-81aa-85e8ab412dff",
+      "name": "Send a text message",
+      "webhookId": "7ad24158-1dd2-496a-abf1-79830d4f6bc4",
+      "credentials": {
+        "telegramApi": {
+          "id": "nf8wYuHTXzGUMAor",
+          "name": "Agente Clinica"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "sendAndWait",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BUBMGJTB3",
+          "mode": "list",
+          "cachedResultName": "general-n8n"
+        },
+        "message": "=🚨 REVISIÓN HUMANA EN FLUJO N8N\n \nCConsulta:{{ $('Setup inicial').item.json.consulta_user }}\n\nRespuesta propuesta: {{ $('Agente RR. HH.').item.json.output }}\n\nRespuesta Juez:\nVeredicto: {{ $('Agente Judge-as-a-AI').item.json.output.estado_veredicto }}\n\nJustificacion: {{ $('Agente Judge-as-a-AI').item.json.output.justificiacion }}\n\nIntento Num: 0\n\n✅ APROBAR = enviar al usuario.\n❌ RECHAZAR = no enviar y registrar.",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "✅ APROBAR",
+            "disapproveLabel": "❌ RECHAZAR "
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        1504,
+        304
+      ],
+      "id": "f9c0bc31-06d2-4a01-b9fc-80f95503de81",
+      "name": "Send message and wait for response",
+      "webhookId": "67e25d7f-4b12-4c1d-8a08-d5689a2fbac4",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "WuoUtn5shN6wTu0F",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Setup inicial').item.json.chat_id }}",
+        "text": "={{ $('Agente RR. HH.').item.json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2000,
+        176
+      ],
+      "id": "bcb36881-dc6d-48c3-9ecd-b014ef0c1551",
+      "name": "Responder (aprobado)",
+      "webhookId": "7ad24158-1dd2-496a-abf1-79830d4f6bc4",
+      "credentials": {
+        "telegramApi": {
+          "id": "nf8wYuHTXzGUMAor",
+          "name": "Agente Clinica"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "a3d8144c-286d-46c6-bc8f-dd6381d44756",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        1792,
+        352
+      ],
+      "id": "d2ff0260-090e-44b6-9551-b3493caf350c",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8740ae0c-ce7b-4521-9c46-d15466a4e9f8",
+              "name": "intentos",
+              "value": "={{ $json.reintentos }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        256,
+        32
+      ],
+      "id": "27b67f30-bb37-46b8-af16-0e493c402468",
+      "name": "Control reintentos"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f57a3344-1970-4a0e-93e1-a14706615c77",
+              "name": "reintentos",
+              "value": "={{ $('Control reintentos').item.json.intentos + 1  }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1744,
+        16
+      ],
+      "id": "0aa8c035-a593-4020-b448-f243ae7b6860",
+      "name": "Correccion - Self-healing"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "08baebbc-9fa7-4e41-a300-23d09ca2d7d2",
+              "leftValue": "={{ $('Control reintentos').item.json.intentos }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        1488,
+        32
+      ],
+      "id": "2646cb4d-f878-4fb4-b523-493ae1c6ba44",
+      "name": "alcanzo limite reintentos?"
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "https://airtable.com/appCFPQ6XHaYjQiGr/tbl90m03IRisb2Xk2/viwfRzgBZV0BuJKBQ?blocks=hide",
+          "mode": "url"
+        },
+        "table": {
+          "__rl": true,
+          "value": "https://airtable.com/appCFPQ6XHaYjQiGr/tbl90m03IRisb2Xk2/viwfRzgBZV0BuJKBQ?blocks=hide",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -176,
+        32
+      ],
+      "id": "74e759c2-f2e5-43b5-85e9-dfdeef70306c",
+      "name": "Search records",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "ROyh6ufCNyDzBFyt",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "fields.contexto"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        32,
+        32
+      ],
+      "id": "7eddd9e3-e3df-4ea3-9fb4-641424bbea99",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        832,
+        256
+      ],
+      "id": "e781461e-a7ec-44d7-8c85-79e052060845",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5aa046ca-81fa-4cbc-aafd-8c63c336742f",
+              "name": "fecha",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "776329e1-5546-446d-aa27-cf5706e857a2",
+              "name": "id_prueba",
+              "value": "={{ $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "c1445554-b172-4182-aec2-c4d2f8283ba0",
+              "name": "arquitectura",
+              "value": "={{ $('Setup inicial').item.json.arquitectura }}",
+              "type": "string"
+            },
+            {
+              "id": "c310f938-6603-4085-a7a6-5c11c95c09aa",
+              "name": "query_original",
+              "value": "={{ $('Setup inicial').first().json.consulta_user}}",
+              "type": "string"
+            },
+            {
+              "id": "d130b048-e12f-4aec-9632-f3c38c0179a1",
+              "name": "respuesta_agente",
+              "value": "={{ $('Agente RR. HH.').last().json.output  }}",
+              "type": "string"
+            },
+            {
+              "id": "b360d02e-53ef-4f2b-a0cf-ff1d0d9de351",
+              "name": "exactitud_factual",
+              "value": "={{ $('Agente Judge-as-a-AI').last().json.output.exactitud_factual }}",
+              "type": "number"
+            },
+            {
+              "id": "221a21e2-47ed-4bb1-acab-875dfb4f6073",
+              "name": "estado_veredicto",
+              "value": "={{ String($('Agente Judge-as-a-AI').last().json.output.estado_veredicto) }}",
+              "type": "string"
+            },
+            {
+              "id": "938ed51a-4be9-42dc-8207-2f2c4ab7bd84",
+              "name": "accion_humana",
+              "value": "={{ ({ 'Responder (aprobado)': 'APROBAR', 'If': 'RECHAZAR' })[$prevNode.name] ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "4b28b32b-1795-4b5d-9285-b0180de3095c",
+              "name": "latencia_output_s",
+              "value": "={{ ($now.toMillis() - $('Setup inicial').item.json.inicio_milisegundos) / 1000 }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "10c56ff4-1b6f-4f1f-8fe4-50fb56457b34",
+      "name": "Normalizar logs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2304,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Qp0tqsVa4q3mSbVgRbIvb8Xv_b1N8sjnFELutiUgELs",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Auditoria",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "fecha": "={{ $json.fecha }}",
+            "id_prueba": "={{ $json.id_prueba }}",
+            "arquitectura": "={{ $json.arquitectura }}",
+            "query_original": "={{ $json.query_original }}",
+            "respuesta_agente": "={{ $json.respuesta_agente }}",
+            "exactitud_factual": "={{ $json.exactitud_factual }}",
+            "estado_veredicto": "={{ $json.estado_veredicto }}",
+            "accion_humana": "={{ $json.accion_humana }}",
+            "latencia_output_s": "={{ $json.latencia_output_s }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "id_prueba",
+              "displayName": "id_prueba",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "arquitectura",
+              "displayName": "arquitectura",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "query_original",
+              "displayName": "query_original",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "respuesta_agente",
+              "displayName": "respuesta_agente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "exactitud_factual",
+              "displayName": "exactitud_factual",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estado_veredicto",
+              "displayName": "estado_veredicto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "accion_humana",
+              "displayName": "accion_humana",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "latencia_output_s",
+              "displayName": "latencia_output_s",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "11f85b29-fb5c-4c33-a290-34be4cab9550",
+      "name": "Auditoria y LOGS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2480,
+        48
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8Zb20mkZtmAnTDOw",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Modelo Agente": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente RR. HH.",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Telegram": {
+      "main": [
+        [
+          {
+            "node": "Setup inicial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setup inicial": {
+      "main": [
+        [
+          {
+            "node": "Search records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente RR. HH.": {
+      "main": [
+        [
+          {
+            "node": "Agente Judge-as-a-AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Agente Judge-as-a-AI",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente Judge-as-a-AI": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "alcanzo limite reintentos?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Responder (aprobado)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Normalizar logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Control reintentos": {
+      "main": [
+        [
+          {
+            "node": "Agente RR. HH.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Correccion - Self-healing": {
+      "main": [
+        [
+          {
+            "node": "Control reintentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Normalizar logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder (aprobado)": {
+      "main": [
+        [
+          {
+            "node": "Normalizar logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "alcanzo limite reintentos?": {
+      "main": [
+        [
+          {
+            "node": "Correccion - Self-healing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Normalizar logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Control reintentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente Judge-as-a-AI",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar logs": {
+      "main": [
+        [
+          {
+            "node": "Auditoria y LOGS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e3b21843-5c28-445d-aa21-45d81c98b6ed",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c1df1e2aaebc2843777da1e4366ecc9ef85ffef2dd6eaf9e2dce3978093be782"
+  },
+  "nodeGroups": [],
+  "id": "FvU2SjA9Uudltk9q",
+  "tags": []
+}
