@@ -1,0 +1,377 @@
+{
+  "name": "CLASE 9 - Worker Customer Success (contrato corregido)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "original_input"
+            },
+            {
+              "name": "intent"
+            },
+            {
+              "name": "confidence",
+              "type": "number"
+            },
+            {
+              "name": "risk"
+            },
+            {
+              "name": "tickets_abiertos",
+              "type": "number"
+            },
+            {
+              "name": "dias_sin_uso",
+              "type": "number"
+            },
+            {
+              "name": "traceId"
+            },
+            {
+              "name": "parentExecutionId"
+            },
+            {
+              "name": "startedAt"
+            },
+            {
+              "name": "metadataVersion"
+            }
+          ]
+        }
+      },
+      "id": "397732a3-ca36-43de-9bf0-feec9f1fefb4",
+      "name": "Entrada desde Manager",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "74a03513-8953-48ea-89d3-c0533d2380b5",
+              "name": "original_input",
+              "value": "={{ $json.original_input }}",
+              "type": "string"
+            },
+            {
+              "id": "703d0c4d-d58b-4bce-a8c3-28f4e31ba1ce",
+              "name": "tickets_abiertos",
+              "value": "={{ Number($json.tickets_abiertos ?? 0) }}",
+              "type": "number"
+            },
+            {
+              "id": "3c85f811-d706-4cd7-958f-272792b3afc0",
+              "name": "dias_sin_uso",
+              "value": "={{ Number($json.dias_sin_uso ?? 0) }}",
+              "type": "number"
+            },
+            {
+              "id": "fc058ddd-770c-4f5e-95ed-9fa829c26280",
+              "name": "traceId",
+              "value": "={{ $json.traceId }}",
+              "type": "string"
+            },
+            {
+              "id": "14e85309-c514-4a81-bb0d-b58897814eff",
+              "name": "parentExecutionId",
+              "value": "={{ $json.parentExecutionId }}",
+              "type": "string"
+            },
+            {
+              "id": "e58d76ee-e2ca-4c93-852e-e1e68877e0c8",
+              "name": "startedAt",
+              "value": "={{ $json.startedAt }}",
+              "type": "string"
+            },
+            {
+              "id": "efcf9c7e-6cf4-4e3a-9063-b39ba6215ce9",
+              "name": "metadataVersion",
+              "value": "={{ $json.metadataVersion }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        224,
+        96
+      ],
+      "id": "fe4428ec-473a-431d-8889-523824fbb31c",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "94363627-e0f8-42fe-a661-b1bc4b9ca2cd",
+              "leftValue": "={{ $json.tickets_abiertos >= 3 &&\n   $json.dias_sin_uso >= 10 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        448,
+        96
+      ],
+      "id": "155a9b2e-653d-405a-8692-2eb870643bd7",
+      "name": "¿Riesgo alto de baja?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "38552297-025d-4436-aa09-820cfa92edb7",
+              "name": "status",
+              "value": "needs_human",
+              "type": "string"
+            },
+            {
+              "id": "703b1e00-ef19-40e1-9fd0-4a324c02f63e",
+              "name": "worker",
+              "value": "CUSTOMER_SUCCESS",
+              "type": "string"
+            },
+            {
+              "id": "b344e9c9-e04e-4ef6-b6d3-010e08d29039",
+              "name": "respuesta",
+              "value": "Cliente con riesgo alto de abandono. Revisar historial, tickets, uso de credenciales, etc. Antes de cualquier propuesta comercial",
+              "type": "string"
+            },
+            {
+              "id": "0b4aa575-f6a0-452b-980c-41c2e13d4533",
+              "name": "requires_human",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "9d1d0109-ca16-4d83-8e97-41291d5aa59d",
+              "name": "churn_risk",
+              "value": "=HIGH",
+              "type": "string"
+            },
+            {
+              "id": "bdbffb74-43d8-44c9-abc3-79ede1b97a61",
+              "name": "datos_simulados",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "86f0298d-5cef-490a-a355-0d4d8504a02d",
+              "name": "traceId",
+              "value": "={ $('Entrada desde Manager').first().json.traceId }",
+              "type": "string"
+            },
+            {
+              "id": "29526bc9-0457-4236-8ab1-51ed57559867",
+              "name": "parentExecutionId",
+              "value": "={ $('Entrada desde Manager').first().json.parentExecutionId }",
+              "type": "string"
+            },
+            {
+              "id": "9fa885b2-12ed-463e-b32a-692735853cde",
+              "name": "startedAt",
+              "value": "={ $('Entrada desde Manager').first().json.startedAt }",
+              "type": "string"
+            },
+            {
+              "id": "58854e6a-e7b5-4391-a346-1970faf906a1",
+              "name": "metadataVersion",
+              "value": "={ $('Entrada desde Manager').first().json.metadataVersion }",
+              "type": "string"
+            },
+            {
+              "id": "3560e74a-b853-49ad-8f1d-1e2a1467cc5d",
+              "name": "workerExecutionId",
+              "value": "={{ String($execution.id) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "include": "selected",
+        "includeFields": "original_input",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        672,
+        0
+      ],
+      "id": "43311e8b-38de-4fd4-8cae-b2968e63721c",
+      "name": "Salida CS - Escalar a un humano"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0edeb4a4-c755-4292-aa83-716a14c35b6e",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "85ab100f-eba5-49f2-ba89-e1a45eac197f",
+              "name": "worker",
+              "value": "CUSTOMER_SUCCESS",
+              "type": "string"
+            },
+            {
+              "id": "3e560fd8-2fc3-4ba7-8bcb-ca3021e576fd",
+              "name": "respuesta",
+              "value": "Se registró el caso para seguimiento de Customer Success. No se detectaron ambas señales de riesgo alto configuradas.",
+              "type": "string"
+            },
+            {
+              "id": "b1064938-1642-4995-950a-3b710e2c09f4",
+              "name": "requires_human",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "0b4d768c-c1d5-48ff-bfba-490fed329a73",
+              "name": "churn_risk",
+              "value": "LOW",
+              "type": "string"
+            },
+            {
+              "id": "9a7bd695-ab43-4ed4-8dd8-7a51c2d89e11",
+              "name": "original_input",
+              "value": "={{ $json.original_input }}",
+              "type": "string"
+            },
+            {
+              "id": "618b8ba3-fc26-4c3f-a892-a4403bdc024c",
+              "name": "datos_simulados",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "1a929785-c5c6-4043-a059-50f8fc889b95",
+              "name": "traceId",
+              "value": "={ $('Entrada desde Manager').first().json.traceId }",
+              "type": "string"
+            },
+            {
+              "id": "dbccf6e3-f19c-4956-b222-99129db7e28b",
+              "name": "parentExecutionId",
+              "value": "={ $('Entrada desde Manager').first().json.parentExecutionId }",
+              "type": "string"
+            },
+            {
+              "id": "3603cabe-dd92-4fa4-a56d-bd1f136d2648",
+              "name": "startedAt",
+              "value": "={ $('Entrada desde Manager').first().json.startedAt }",
+              "type": "string"
+            },
+            {
+              "id": "98a8bb31-f121-476a-a908-cc433a0b1f25",
+              "name": "metadataVersion",
+              "value": "={ $('Entrada desde Manager').first().json.metadataVersion }",
+              "type": "string"
+            },
+            {
+              "id": "d8eb882b-b1f8-455c-953e-7f5553a441ec",
+              "name": "workerExecutionId",
+              "value": "={{ String($execution.id) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        672,
+        192
+      ],
+      "id": "e94db2c0-ef8c-48c6-8f84-2112e5bdb723",
+      "name": "Salida CS - Seguimiento"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Entrada desde Manager": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "¿Riesgo alto de baja?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Riesgo alto de baja?": {
+      "main": [
+        [
+          {
+            "node": "Salida CS - Escalar a un humano",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Salida CS - Seguimiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "6d03fb4b-a28b-4621-aeb3-f65cc9eb9c05",
+  "meta": {
+    "instanceId": "3d6f45bf59cb019973cb542665b2909f319713d5ca96b7aa1b6f13611d587ce4"
+  },
+  "nodeGroups": [],
+  "id": "dvjN5wOPIqiEYfuM",
+  "tags": []
+}
